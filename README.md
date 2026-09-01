@@ -20,3 +20,5 @@ O segredo: Toda vez que entra código novo no GitHub, a Vercel percebe sozinha e
 É o resultado final! É o link que você pode abrir no seu computador, celular ou enviar para um colega.
 
 Quando a página carrega, ela faz um pedido silencioso para o Supabase, pega os 368 veículos cadastrados e exibe na tela com esse visual escuro (Dark Mode), com a busca por placa e o menu da Portaria.
+
+Link do Sistema para visualização : https://beta-sistem-psi.vercel.app/portaria
