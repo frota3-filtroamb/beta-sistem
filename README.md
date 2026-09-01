@@ -1,36 +1,23 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+-----------------------------------------------------------------------------------------------------------
+1. O Banco de Dados: Supabase (O Cofre)
+É onde ficam guardadas todas as informações da empresa: a lista de veículos, placas, modelos, marcas, anos e status da portaria.
 
-## Getting Started
+Em vez de salvar arquivos de texto na sua Área de Trabalho, os dados ficam armazenados na nuvem de forma segura e organizada.
+-----------------------------------------------------------------------------------------------------------
+2. O Código: GitHub (O Armário de Projetos)
+É o local onde todo o código-fonte do sistema (escrito em Next.js, React e Tailwind CSS) fica guardado e protegido.
 
-First, run the development server:
+Sempre que você faz uma alteração no seu computador (no VS Code) e roda os comandos git add e git push, o arquivo atualizado é enviado direto para o GitHub.
+-----------------------------------------------------------------------------------------------------------
+3. A Hospedagem: Vercel (O Motor da Aplicação)
+É o serviço que pega o código que está no seu GitHub e faz ele "rodar" na internet 24 horas por dia.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+Ela se conecta com o Supabase usando as chaves de segurança que configuramos (NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY) para conseguir buscar a lista de veículos.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+O segredo: Toda vez que entra código novo no GitHub, a Vercel percebe sozinha e atualiza o site no ar automaticamente!
+-----------------------------------------------------------------------------------------------------------
+4. O Site Operando: FiltroAmb - Frota Ativa (A Sua Tela)
+É o resultado final! É o link que você pode abrir no seu computador, celular ou enviar para um colega.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Quando a página carrega, ela faz um pedido silencioso para o Supabase, pega os 368 veículos cadastrados e exibe na tela com esse visual escuro (Dark Mode), com a busca por placa e o menu da Portaria.
+-----------------------------------------------------------------------------------------------------------
