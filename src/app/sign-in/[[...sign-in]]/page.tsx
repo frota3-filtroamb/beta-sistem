@@ -45,26 +45,29 @@ export default function Page() {
             />
           </div>
 
-          <SignIn
-            appearance={{
-              elements: {
-                rootBox: 'mx-auto',
-                card: 'bg-[#0f1c2e] border border-emerald-500/15 shadow-2xl',
-                headerTitle: 'text-white',
-                headerSubtitle: 'text-slate-400',
-                socialButtonsBlockButton:
-                  'bg-[#132337] border border-white/10 text-white hover:bg-[#1a2d45]',
-                formFieldLabel: 'text-slate-300',
-                formFieldInput:
-                  'bg-[#132337] border border-emerald-500/20 text-white',
-                footerActionLink: 'text-emerald-400 hover:text-emerald-300',
-                formButtonPrimary:
-                  'bg-emerald-500 hover:bg-emerald-400 text-[#0a1625]',
-                identityPreviewText: 'text-white',
-                identityPreviewEditButton: 'text-emerald-400',
-              },
-            }}
-          />
+       <SignIn
+     path="/sign-in"
+     signUpUrl="/sign-up"
+      appearance={{
+      elements: {
+      rootBox: 'mx-auto',
+      card: 'bg-[#0f1c2e] border border-emerald-500/15 shadow-2xl',
+      headerTitle: 'text-white',
+      headerSubtitle: 'text-slate-400',
+      socialButtonsBlockButton:
+        'bg-[#132337] border border-white/10 text-white hover:bg-[#1a2d45]',
+      formFieldLabel: 'text-slate-300',
+      formFieldInput:
+        'bg-[#132337] border border-emerald-500/20 text-white',
+      footerActionLink: 'text-emerald-400 hover:text-emerald-300',
+      formButtonPrimary:
+        'bg-emerald-500 hover:bg-emerald-400 text-[#0a1625]',
+      identityPreviewText: 'text-white',
+      identityPreviewEditButton: 'text-emerald-400',
+           },
+          }}
+            />            
+
         </div>
       </div>
     </div>
