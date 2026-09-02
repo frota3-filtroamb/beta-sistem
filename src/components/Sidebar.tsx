@@ -2,12 +2,15 @@
 
 import { usePathname } from 'next/navigation'
 import { useState } from 'react'
+import { useTheme } from '@/components/ThemeProvider'
+import { UserButton } from '@clerk/nextjs'
 
 export default function Sidebar() {
   const pathname = usePathname()
-  const [portariaAberta, setPortariaAberta] = useState(
-    pathname === '/portaria' || pathname === '/liberacao'
-  )
+  const { theme, toggleTheme } = useTheme()
+const [portariaAberta, setPortariaAberta] = useState(
+  pathname === '/portaria' || pathname === '/liberacao' || pathname === '/transferencia'
+)
 
   const ativo = (href: string) => pathname === href
 
@@ -31,7 +34,17 @@ export default function Sidebar() {
           Menu
         </p>
 
-        {/* Veículos */}
+        <a
+        href="/transferencia"
+        className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all ${
+        ativo('/transferencia')
+        ? 'bg-emerald-500/15 text-emerald-300 font-medium'
+        : 'text-slate-400 hover:bg-white/5 hover:text-white'
+        }`}
+>
+  <span>Transferência</span>
+</a>
+
         <a
           href="/"
           className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all ${
@@ -44,7 +57,6 @@ export default function Sidebar() {
           <span>Veículos</span>
         </a>
 
-        {/* Portaria (expansível) */}
         <div>
           <button
             type="button"
@@ -91,10 +103,31 @@ export default function Sidebar() {
         </div>
       </nav>
 
+      {/* Botão tema */}
+      <div className="px-3 pb-2">
+        <button
+          type="button"
+          onClick={toggleTheme}
+          className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm text-slate-300 hover:bg-white/5 hover:text-white transition"
+        >
+          <span className="flex items-center gap-3">
+            <span>{theme === 'dark' ? '🌙' : '☀️'}</span>
+            <span>{theme === 'dark' ? 'Modo escuro' : 'Modo claro'}</span>
+          </span>
+        </button>
+      </div>
+
       {/* Rodapé */}
       <div className="px-6 py-4 border-t border-white/10">
         <p className="text-[11px] text-slate-500">Sistema Interno</p>
         <p className="text-[10px] text-slate-600 mt-0.5">v0.2</p>
+      </div>
+      <div className="px-4 py-3 border-t border-white/10 flex items-center justify-between">
+       <div>
+       <p className="text-[11px] text-slate-500">Sistema Interno</p>
+      <p className="text-[10px] text-slate-600 mt-0.5">v0.3</p>
+       </div>
+        <UserButton afterSignOutUrl="/sign-in" />
       </div>
     </aside>
   )
