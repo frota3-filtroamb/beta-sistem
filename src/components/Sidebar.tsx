@@ -127,7 +127,7 @@ const [portariaAberta, setPortariaAberta] = useState(
        <p className="text-[11px] text-slate-500">Sistema Interno</p>
       <p className="text-[10px] text-slate-600 mt-0.5">v0.3</p>
        </div>
-        <UserButton afterSignOutUrl="/sign-in" />
+             <UserButton />
       </div>
     </aside>
   )
