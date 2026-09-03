@@ -21,7 +21,7 @@ type Movimentacao = {
 type Pedestre = {
   id: number
   nome: string
-  cpf: string | null
+  cpf_rg: string | null
   telefone: string | null
   empresa: string | null
   destino: string | null
@@ -126,7 +126,7 @@ export default function PortariaPage() {
   )
 
   const pFiltrados = pedestres.filter((p) => 
-    p.nome?.toLowerCase().includes(textoFiltro) || p.cpf?.includes(textoFiltro) || p.empresa?.toLowerCase().includes(textoFiltro)
+    p.nome?.toLowerCase().includes(textoFiltro) || p.cpf_rg?.includes(textoFiltro) || p.empresa?.toLowerCase().includes(textoFiltro)
   )
   const pHistFiltrado = historicoPedestres.filter((p) => 
     p.nome?.toLowerCase().includes(textoFiltro) || p.empresa?.toLowerCase().includes(textoFiltro)
@@ -136,9 +136,9 @@ export default function PortariaPage() {
     <div className="min-h-screen flex bg-[#0a1625]">
       <Sidebar />
 
-      <div className="flex-1 ml-64">
+      <div className="flex-1 ml-64 flex flex-col h-screen overflow-hidden">
         {/* Banner */}
-        <div className="relative h-52 md:h-60 overflow-hidden">
+        <div className="relative h-28 md:h-36 shrink-0 overflow-hidden">
           <img src="/images/banner-frota.jpg" alt="Filtroamb" className="w-full h-full object-cover object-center" />
           <div className="absolute inset-0 bg-gradient-to-r from-[#0a1625]/85 via-[#0a1625]/50 to-[#0a1625]/20" />
           <div data-banner className="absolute inset-0 flex items-end pb-6 px-8">
@@ -153,9 +153,11 @@ export default function PortariaPage() {
           </div>
         </div>
 
-        {/* Toggle Abas (Veículos vs Pedestres) */}
-        <div className="px-8 mt-6">
-          <div className="flex bg-[#132337] border border-emerald-500/20 rounded-xl p-1.5 w-fit">
+        {/* Main Content Area (Compactado & com scroll interno) */}
+        <div className="flex-1 overflow-y-auto overflow-x-hidden bg-[#0a1625]" style={{ zoom: 0.95 }}>
+          {/* Toggle Abas (Veículos vs Pedestres) */}
+          <div className="px-6 mt-4">
+            <div className="flex bg-[#132337] border border-emerald-500/20 rounded-xl p-1.5 w-fit">
             <button
               onClick={() => setAbaAtual('veiculos')}
               className={`px-6 py-2 rounded-lg text-sm font-semibold transition ${
@@ -175,9 +177,10 @@ export default function PortariaPage() {
           </div>
         </div>
 
-        {/* Cards */}
-        {abaAtual === 'veiculos' ? (
-          <div className="px-8 pt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Cards */}
+          <div key={abaAtual} className="animate-tab">
+            {abaAtual === 'veiculos' ? (
+              <div className="px-6 pt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-[#0f1c2e] border border-orange-500/20 rounded-2xl p-5 shadow-[0_0_20px_rgba(249,115,22,0.06)]">
               <div className="flex items-center justify-between">
                 <div>
@@ -243,26 +246,27 @@ export default function PortariaPage() {
                 </div>
                 <div className="w-11 h-11 rounded-xl bg-emerald-500/15 flex items-center justify-center text-xl">✅</div>
               </div>
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
-        <header className="bg-[#0b1f33] border-b border-emerald-500/20 sticky top-0 z-10 mt-6">
-          <div className="px-8 py-5 flex items-center justify-between">
-            <div>
-              <h2 className="text-xl font-semibold text-white tracking-tight">Controle de {abaAtual === 'veiculos' ? 'Veículos' : 'Pedestres'}</h2>
+          <header className="bg-[#0b1f33] border-b border-emerald-500/20 sticky top-0 z-10 mt-4">
+            <div className="px-6 py-4 flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-semibold text-white tracking-tight">Controle de {abaAtual === 'veiculos' ? 'Veículos' : 'Pedestres'}</h2>
+              </div>
+              <button
+                onClick={carregar}
+                className="text-sm bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/20 px-4 py-2 rounded-xl transition"
+              >
+                Atualizar
+              </button>
             </div>
-            <button
-              onClick={carregar}
-              className="text-sm bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/20 px-4 py-2 rounded-xl transition"
-            >
-              Atualizar
-            </button>
-          </div>
-        </header>
+          </header>
 
-        <main className="p-8 pt-4">
-          {mensagem && (
+          <main key={`main-${abaAtual}`} className="animate-tab p-6 pt-4 flex-1">
+            {mensagem && (
             <div className={`mb-4 p-4 rounded-xl text-sm border ${mensagem.includes('Erro') ? 'bg-red-500/10 text-red-300 border-red-500/20' : 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20'}`}>
               {mensagem}
             </div>
@@ -406,7 +410,7 @@ export default function PortariaPage() {
                               <div className="text-xs text-slate-500">{p.empresa || 'Sem empresa'}</div>
                             </td>
                             <td className="px-5 py-3.5">
-                              <div className="text-slate-300">{p.cpf || '—'}</div>
+                              <div className="text-slate-300">{p.cpf_rg || '—'}</div>
                               <div className="text-xs text-slate-500">{p.telefone || '—'}</div>
                             </td>
                             <td className="px-5 py-3.5 text-slate-300">{p.destino || '—'}</td>
@@ -465,9 +469,10 @@ export default function PortariaPage() {
                 </div>
               </div>
             </>
-          )}
+            )}
 
-        </main>
+          </main>
+        </div>
       </div>
     </div>
   )

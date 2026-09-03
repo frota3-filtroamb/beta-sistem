@@ -10,7 +10,7 @@ export default function Sidebar() {
   const pathname = usePathname()
   const { theme, toggleTheme } = useTheme()
   const [portariaAberta, setPortariaAberta] = useState(
-  pathname === '/portaria' || pathname === '/liberacao' || pathname === '/transferencia'
+  pathname === '/portaria' || pathname === '/liberacao' || pathname === '/transferencia' || pathname === '/encomendas'
 )
 
   const ativo = (href: string) => pathname === href
@@ -63,7 +63,7 @@ export default function Sidebar() {
             type="button"
             onClick={() => setPortariaAberta(!portariaAberta)}
             className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm transition-all ${
-              pathname === '/portaria' || pathname === '/liberacao'
+              pathname === '/portaria' || pathname === '/liberacao' || pathname === '/encomendas'
                 ? 'bg-emerald-500/10 text-emerald-300 font-medium'
                 : 'text-slate-300 hover:bg-white/5 hover:text-white'
             }`}
@@ -98,6 +98,17 @@ export default function Sidebar() {
                 }`}
               >
                 <span>Liberação</span>
+              </a>
+              <a
+                href="/encomendas"
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all ${
+                  ativo('/encomendas')
+                    ? 'bg-blue-500/15 text-blue-300 font-medium'
+                    : 'text-slate-400 hover:bg-white/5 hover:text-white'
+                }`}
+              >
+                <span className="mr-1">📦</span>
+                <span>Encomendas</span>
               </a>
             </div>
           )}

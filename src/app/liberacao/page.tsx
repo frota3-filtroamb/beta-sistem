@@ -158,7 +158,7 @@ export default function LiberacaoPage() {
 
       const { error } = await supabase.from('movimentacoes_pedestres').insert({
         nome: nomePedestre,
-        cpf: cpfPedestre || null,
+        cpf_rg: cpfPedestre || null,
         telefone: telefonePedestre || null,
         empresa: empresaPedestre || null,
         destino: destinoSelecionado || buscaDestino,
@@ -383,8 +383,8 @@ export default function LiberacaoPage() {
     <div className="min-h-screen flex bg-[#0a1625]">
       <Sidebar />
 
-      <div className="flex-1 ml-64">
-        <div className="relative h-36 overflow-hidden">
+      <div className="flex-1 ml-64 flex flex-col h-screen overflow-hidden">
+        <div className="relative h-28 md:h-36 shrink-0 overflow-hidden">
           <img src="/images/banner-frota.jpg" alt="Filtroamb" className="w-full h-full object-cover object-center" />
           <div className="absolute inset-0 bg-gradient-to-r from-[#0a1625]/90 via-[#0a1625]/55 to-transparent" />
           <div data-banner className="absolute inset-0 flex items-end pb-4 px-8">
@@ -402,9 +402,11 @@ export default function LiberacaoPage() {
           </div>
         </div>
 
-        <main className="p-6 pb-24">
-          <div className="max-w-6xl mx-auto">
-            <div className="flex gap-3 mb-5 overflow-x-auto pb-2">
+        {/* Main content compactado */}
+        <div className="flex-1 overflow-y-auto bg-[#0a1625]" style={{ zoom: 0.95 }}>
+          <main className="p-6">
+            <div className="max-w-6xl mx-auto">
+              <div className="flex gap-3 mb-4 overflow-x-auto pb-2">
               <button
                 type="button"
                 onClick={() => {
@@ -463,7 +465,7 @@ export default function LiberacaoPage() {
               </button>
             </div>
 
-            <div className="bg-[#0f1c2e] rounded-2xl border border-emerald-500/15 overflow-visible">
+            <div key={tipoVeiculo} className="animate-tab bg-[#0f1c2e] rounded-2xl border border-emerald-500/15 overflow-visible">
               <div className="px-6 py-3 border-b border-white/5 bg-[#132337]/60 flex items-center justify-between rounded-t-2xl">
                 <div>
                   <h2 className="text-sm font-semibold text-white">
@@ -1074,7 +1076,7 @@ export default function LiberacaoPage() {
             
             {/* Histórico de Transferências caso a aba seja transferencia */}
             {tipoVeiculo === 'transferencia' && (
-              <div className="mt-8">
+              <div className="animate-tab mt-6">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-lg font-semibold text-white tracking-tight">
                     Histórico de Transferências
@@ -1130,5 +1132,6 @@ export default function LiberacaoPage() {
         </main>
       </div>
     </div>
+  </div>
   )
 }
