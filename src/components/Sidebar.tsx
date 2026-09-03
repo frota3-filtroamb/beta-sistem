@@ -122,7 +122,7 @@ export default function Sidebar() {
       <div className="px-4 py-3 border-t border-white/10 flex items-center justify-between">
        <div>
        <p className="text-[11px] text-slate-500">Sistema Interno</p>
-      <p className="text-[10px] text-slate-600 mt-0.5">v1.0</p>
+      <p className="text-[10px] text-slate-600 mt-0.5">v1.5</p>
        </div>
              <UserButton />
       </div>

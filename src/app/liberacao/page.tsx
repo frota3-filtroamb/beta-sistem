@@ -16,6 +16,17 @@ type Item = {
   nome: string
 }
 
+type Transferencia = {
+  id: number
+  placa: string
+  base_origem: string
+  base_destino: string
+  motorista: string | null
+  observacao: string | null
+  transferido_em: string | null
+  transferido_por: string | null
+}
+
 export default function LiberacaoPage() {
   const supabase = createClient()
 
@@ -23,8 +34,9 @@ export default function LiberacaoPage() {
   const [origens, setOrigens] = useState<Item[]>([])
   const [destinos, setDestinos] = useState<Item[]>([])
   const [motoristas, setMotoristas] = useState<Item[]>([])
+  const [listaTransferencias, setListaTransferencias] = useState<Transferencia[]>([])
 
-  const [tipoVeiculo, setTipoVeiculo] = useState<'interno' | 'externo'>('interno')
+  const [tipoVeiculo, setTipoVeiculo] = useState<'interno' | 'externo' | 'transferencia'>('interno')
 
   const [buscaPlaca, setBuscaPlaca] = useState('')
   const [veiculoSelecionado, setVeiculoSelecionado] = useState<Veiculo | null>(null)
@@ -53,20 +65,31 @@ export default function LiberacaoPage() {
 
   const [km, setKm] = useState('')
   const [dataHora, setDataHora] = useState('')
+  
+  // States specific to Transferencia
+  const [baseOrigem, setBaseOrigem] = useState('')
+  const [baseDestino, setBaseDestino] = useState('')
+  const [mostrarListaBaseOrigem, setMostrarListaBaseOrigem] = useState(false)
+  const [mostrarListaBaseDestino, setMostrarListaBaseDestino] = useState(false)
+  const [observacao, setObservacao] = useState('')
+  const [buscaFiltroTransf, setBuscaFiltroTransf] = useState('')
+
   const [carregando, setCarregando] = useState(false)
   const [mensagem, setMensagem] = useState('')
 
   async function carregarDados() {
-    const [v, o, d, m] = await Promise.all([
+    const [v, o, d, m, t] = await Promise.all([
       supabase.from('veiculos').select('NR_PLACA, DS_MODELO, DS_MARCA, NR_ANO_MODELO').order('NR_PLACA'),
       supabase.from('origens').select('id, nome').order('nome'),
       supabase.from('destinos').select('id, nome').order('nome'),
       supabase.from('motoristas').select('id, nome').order('nome'),
+      supabase.from('transferencias').select('*').order('transferido_em', { ascending: false }).limit(50),
     ])
     if (v.data) setVeiculos(v.data)
     if (o.data) setOrigens(o.data)
     if (d.data) setDestinos(d.data)
     if (m.data) setMotoristas(m.data)
+    if (t.data) setListaTransferencias(t.data)
   }
 
   useEffect(() => {
@@ -82,6 +105,8 @@ export default function LiberacaoPage() {
         setMostrarListaMotorista(false)
         setMostrarListaOrigem(false)
         setMostrarListaDestino(false)
+        setMostrarListaBaseOrigem(false)
+        setMostrarListaBaseDestino(false)
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
@@ -109,9 +134,60 @@ export default function LiberacaoPage() {
     carregarDados()
   }
 
-  async function handleLiberar(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
 
+    if (tipoVeiculo === 'transferencia') {
+      if (!veiculoSelecionado) {
+        setMensagem('Selecione um veículo')
+        return
+      }
+      if (!baseOrigem || !baseDestino) {
+        setMensagem('Selecione origem e destino')
+        return
+      }
+      if (baseOrigem === baseDestino) {
+        setMensagem('Origem e destino não podem ser iguais')
+        return
+      }
+
+      setCarregando(true)
+      setMensagem('')
+
+      const { error } = await supabase.from('transferencias').insert({
+        placa: veiculoSelecionado.NR_PLACA,
+        base_origem: baseOrigem,
+        base_destino: baseDestino,
+        motorista: motoristaSelecionado || buscaMotorista || null,
+        observacao: observacao || null,
+        status: 'concluida',
+        transferido_por: 'Gestor',
+        transferido_em: dataHora
+          ? new Date(dataHora).toISOString()
+          : new Date().toISOString(),
+      })
+
+      setCarregando(false)
+
+      if (error) {
+        setMensagem('Erro ao transferir: ' + error.message)
+        return
+      }
+
+      setMensagem('Transferência registrada com sucesso!')
+      setVeiculoSelecionado(null)
+      setBuscaPlaca('')
+      setBaseOrigem('')
+      setBaseDestino('')
+      setBuscaMotorista('')
+      setMotoristaSelecionado('')
+      setObservacao('')
+      setDataHora('')
+      carregarDados()
+      return
+    }
+
+    // Lógica para Liberação (Interno / Externo)
     const placaFinal =
       tipoVeiculo === 'interno'
         ? veiculoSelecionado?.NR_PLACA
@@ -169,6 +245,90 @@ export default function LiberacaoPage() {
     setDataHora('')
   }
 
+  function formatarData(data: string | null) {
+    if (!data) return '—'
+    return new Date(data).toLocaleString('pt-BR')
+  }
+
+  const transferenciasFiltradas = listaTransferencias.filter((t) => {
+    const texto = buscaFiltroTransf.toLowerCase()
+    return (
+      t.placa?.toLowerCase().includes(texto) ||
+      t.base_origem?.toLowerCase().includes(texto) ||
+      t.base_destino?.toLowerCase().includes(texto) ||
+      t.motorista?.toLowerCase().includes(texto)
+    )
+  })
+
+  // Dropdown comum para motorista
+  const MotoristaDropdown = (opcional: boolean = false) => (
+    <div data-dropdown className="relative">
+      <div className="flex items-center justify-between mb-1.5">
+        <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+          Motorista {opcional && '(opcional)'}
+        </label>
+        <button type="button" onClick={() => setMostrarFormMotorista(!mostrarFormMotorista)} className="text-xs text-emerald-400 hover:text-emerald-300">
+          + Cadastrar
+        </button>
+      </div>
+      {mostrarFormMotorista && (
+        <div className="mb-2 flex gap-2">
+          <input
+            type="text"
+            value={novoMotorista}
+            onChange={(e) => setNovoMotorista(e.target.value)}
+            placeholder="Nome..."
+            className="flex-1 px-3 py-2 bg-[#132337] border border-emerald-500/20 rounded-lg text-sm text-white"
+          />
+          <button
+            type="button"
+            onClick={() => cadastrarItem('motoristas', novoMotorista, setBuscaMotorista, setMotoristaSelecionado, setMostrarFormMotorista, setNovoMotorista)}
+            className="px-3 py-2 bg-emerald-500 text-[#0a1625] text-sm font-semibold rounded-lg"
+          >
+            Salvar
+          </button>
+        </div>
+      )}
+      <input
+        type="text"
+        value={buscaMotorista}
+        onChange={(e) => {
+          setBuscaMotorista(e.target.value)
+          setMotoristaSelecionado('')
+          setMostrarListaMotorista(true)
+        }}
+        onFocus={() => setMostrarListaMotorista(true)}
+        placeholder="Buscar motorista..."
+        className="w-full px-4 py-2.5 bg-[#132337] border border-emerald-500/20 rounded-xl text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/40 transition"
+      />
+      {motoristaSelecionado && (
+        <div className="mt-2 px-3 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-sm text-emerald-300">
+          {motoristaSelecionado}
+        </div>
+      )}
+      {mostrarListaMotorista && !motoristaSelecionado && (
+        <div className="absolute z-20 w-full mt-1.5 bg-[#132337] border border-emerald-500/25 rounded-xl shadow-2xl max-h-40 overflow-auto">
+          {motoristas
+            .filter((m) => m.nome.toLowerCase().includes(buscaMotorista.toLowerCase()))
+            .map((m) => (
+              <button
+                key={m.id}
+                type="button"
+                onClick={() => {
+                  setMotoristaSelecionado(m.nome)
+                  setBuscaMotorista(m.nome)
+                  setMostrarListaMotorista(false)
+                }}
+                className="w-full text-left px-4 py-2.5 hover:bg-emerald-500/10 text-sm text-slate-200 border-b border-white/5 last:border-0"
+              >
+                {m.nome}
+              </button>
+            ))}
+        </div>
+      )}
+    </div>
+  )
+
   return (
     <div className="min-h-screen flex bg-[#0a1625]">
       <Sidebar />
@@ -179,19 +339,28 @@ export default function LiberacaoPage() {
           <div className="absolute inset-0 bg-gradient-to-r from-[#0a1625]/90 via-[#0a1625]/55 to-transparent" />
           <div data-banner className="absolute inset-0 flex items-end pb-4 px-8">
             <div>
-              <h1 className="text-xl font-bold text-white tracking-tight">Liberação Portaria</h1>
-              <p className="text-sm text-emerald-300 mt-0.5">Autorize a saída de veículos internos ou externos</p>
+              <h1 className="text-xl font-bold text-white tracking-tight">
+                {tipoVeiculo === 'transferencia' ? 'Transferência de Bases' : 'Liberação Portaria'}
+              </h1>
+              <p className="text-sm text-emerald-300 mt-0.5">
+                {tipoVeiculo === 'transferencia' 
+                  ? 'Mudança definitiva de base (não fica em rota)' 
+                  : 'Autorize a saída de veículos internos ou externos'}
+              </p>
             </div>
           </div>
         </div>
 
-        <main className="p-6">
+        <main className="p-6 pb-24">
           <div className="max-w-6xl mx-auto">
-            <div className="flex gap-3 mb-5">
+            <div className="flex gap-3 mb-5 overflow-x-auto pb-2">
               <button
                 type="button"
-                onClick={() => setTipoVeiculo('interno')}
-                className={`flex-1 py-3 px-4 rounded-xl text-sm font-semibold transition-all duration-200 border ${
+                onClick={() => {
+                  setTipoVeiculo('interno')
+                  setMensagem('')
+                }}
+                className={`flex-1 min-w-[200px] py-3 px-4 rounded-xl text-sm font-semibold transition-all duration-200 border ${
                   tipoVeiculo === 'interno'
                     ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300 shadow-[0_0_20px_rgba(16,185,129,0.25)]'
                     : 'bg-[#0f1c2e] border-white/10 text-slate-400 hover:border-emerald-500/30 hover:shadow-[0_8px_24px_rgba(0,0,0,0.35)] hover:-translate-y-0.5'
@@ -201,8 +370,11 @@ export default function LiberacaoPage() {
               </button>
               <button
                 type="button"
-                onClick={() => setTipoVeiculo('externo')}
-                className={`flex-1 py-3 px-4 rounded-xl text-sm font-semibold transition-all duration-200 border ${
+                onClick={() => {
+                  setTipoVeiculo('externo')
+                  setMensagem('')
+                }}
+                className={`flex-1 min-w-[200px] py-3 px-4 rounded-xl text-sm font-semibold transition-all duration-200 border ${
                   tipoVeiculo === 'externo'
                     ? 'bg-orange-500/15 border-orange-500/40 text-orange-300 shadow-[0_0_20px_rgba(249,115,22,0.25)]'
                     : 'bg-[#0f1c2e] border-white/10 text-slate-400 hover:border-orange-500/30 hover:shadow-[0_8px_24px_rgba(0,0,0,0.35)] hover:-translate-y-0.5'
@@ -210,112 +382,185 @@ export default function LiberacaoPage() {
               >
                 Veículo Externo
               </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setTipoVeiculo('transferencia')
+                  setMensagem('')
+                }}
+                className={`flex-1 min-w-[200px] py-3 px-4 rounded-xl text-sm font-semibold transition-all duration-200 border ${
+                  tipoVeiculo === 'transferencia'
+                    ? 'bg-blue-500/15 border-blue-500/40 text-blue-300 shadow-[0_0_20px_rgba(59,130,246,0.25)]'
+                    : 'bg-[#0f1c2e] border-white/10 text-slate-400 hover:border-blue-500/30 hover:shadow-[0_8px_24px_rgba(0,0,0,0.35)] hover:-translate-y-0.5'
+                }`}
+              >
+                Transferência de Bases
+              </button>
             </div>
 
-            <div className="bg-[#0f1c2e] rounded-2xl border border-emerald-500/15 overflow-hidden">
-              <div className="px-6 py-3 border-b border-white/5 bg-[#132337]/60 flex items-center justify-between">
+            {/* Changed from overflow-hidden to overflow-visible to let dropdowns escape */}
+            <div className="bg-[#0f1c2e] rounded-2xl border border-emerald-500/15 overflow-visible">
+              <div className="px-6 py-3 border-b border-white/5 bg-[#132337]/60 flex items-center justify-between rounded-t-2xl">
                 <div>
-                  <h2 className="text-sm font-semibold text-white">Nova Autorização de Saída</h2>
+                  <h2 className="text-sm font-semibold text-white">
+                    {tipoVeiculo === 'transferencia' ? 'Nova Transferência' : 'Nova Autorização de Saída'}
+                  </h2>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    {tipoVeiculo === 'interno' ? 'Frota própria Filtroamb' : 'Veículo de terceiro / visitante'}
+                    {tipoVeiculo === 'interno' && 'Frota própria Filtroamb'}
+                    {tipoVeiculo === 'externo' && 'Veículo de terceiro / visitante'}
+                    {tipoVeiculo === 'transferencia' && 'Use quando o veículo muda de base de trabalho'}
                   </p>
                 </div>
                 <span className={`text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full ${
-                  tipoVeiculo === 'interno' ? 'bg-emerald-500/15 text-emerald-300' : 'bg-orange-500/15 text-orange-300'
+                  tipoVeiculo === 'interno' ? 'bg-emerald-500/15 text-emerald-300' :
+                  tipoVeiculo === 'externo' ? 'bg-orange-500/15 text-orange-300' :
+                  'bg-blue-500/15 text-blue-300'
                 }`}>
-                  {tipoVeiculo === 'interno' ? 'Interno' : 'Externo'}
+                  {tipoVeiculo === 'interno' ? 'Interno' : tipoVeiculo === 'externo' ? 'Externo' : 'Transferência'}
                 </span>
               </div>
 
-              <form onSubmit={handleLiberar} className="p-6">
-                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    {tipoVeiculo === 'interno' ? (
+              <form onSubmit={handleSubmit} className="p-6">
+                
+                {tipoVeiculo === 'transferencia' ? (
+                  /* ======= FORMULÁRIO DE TRANSFERÊNCIA ======= */
+                  <div className="space-y-5">
+                    <div data-dropdown className="relative max-w-xl">
+                      <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+                        Veículo
+                      </label>
+                      <input
+                        type="text"
+                        value={buscaPlaca}
+                        onChange={(e) => {
+                          setBuscaPlaca(e.target.value)
+                          setVeiculoSelecionado(null)
+                          setMostrarListaPlaca(true)
+                        }}
+                        onFocus={() => setMostrarListaPlaca(true)}
+                        placeholder="Buscar placa..."
+                        className="w-full px-4 py-2.5 bg-[#132337] border border-emerald-500/20 rounded-xl text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/40 uppercase transition"
+                      />
+                      {veiculoSelecionado && (
+                        <div className="mt-2 px-3 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-sm text-emerald-300">
+                          ✓ {veiculoSelecionado.NR_PLACA} — {veiculoSelecionado.DS_MODELO}
+                        </div>
+                      )}
+                      {mostrarListaPlaca && !veiculoSelecionado && buscaPlaca.length >= 1 && (
+                        <div className="absolute z-20 w-full mt-1.5 bg-[#132337] border border-emerald-500/25 rounded-xl shadow-2xl max-h-56 overflow-auto">
+                          {Array.from(
+                            new Map(
+                              veiculos
+                                .filter((v) =>
+                                  v.NR_PLACA?.toLowerCase().includes(buscaPlaca.toLowerCase())
+                                )
+                                .map((v) => [v.NR_PLACA, v])
+                            ).values()
+                          )
+                            .slice(0, 8)
+                            .map((v, i) => (
+                              <button
+                                key={`${v.NR_PLACA}-${i}`}
+                                type="button"
+                                onClick={() => {
+                                  setVeiculoSelecionado(v)
+                                  setBuscaPlaca(v.NR_PLACA)
+                                  setMostrarListaPlaca(false)
+                                }}
+                                className="w-full text-left px-4 py-3 hover:bg-emerald-500/10 border-b border-white/5 last:border-0"
+                              >
+                                <div className="font-semibold text-emerald-300">{v.NR_PLACA}</div>
+                                <div className="text-xs text-slate-400">{v.DS_MODELO}</div>
+                              </button>
+                            ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-4xl">
                       <div data-dropdown className="relative">
-                        <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Veículo</label>
+                        <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+                          Base origem
+                        </label>
                         <input
                           type="text"
-                          value={buscaPlaca}
+                          value={baseOrigem}
                           onChange={(e) => {
-                            setBuscaPlaca(e.target.value)
-                            setVeiculoSelecionado(null)
-                            setMostrarListaPlaca(true)
+                            setBaseOrigem(e.target.value)
+                            setMostrarListaBaseOrigem(true)
                           }}
-                          onFocus={() => setMostrarListaPlaca(true)}
-                          placeholder="Buscar por placa..."
-                          className="w-full px-4 py-2.5 bg-[#132337] border border-emerald-500/20 rounded-xl text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/40 uppercase transition"
+                          onFocus={() => setMostrarListaBaseOrigem(true)}
+                          placeholder="Buscar base origem..."
+                          className="w-full px-4 py-2.5 bg-[#132337] border border-emerald-500/20 rounded-xl text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/40 transition"
                         />
-                        {veiculoSelecionado && (
-                          <div className="mt-2 px-3 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-sm text-emerald-300">
-                            {veiculoSelecionado.NR_PLACA} — {veiculoSelecionado.DS_MODELO}
-                          </div>
-                        )}
-                        {mostrarListaPlaca && !veiculoSelecionado && buscaPlaca.length >= 1 && (
-                          <div className="absolute z-20 w-full mt-1.5 bg-[#132337] border border-emerald-500/25 rounded-xl shadow-2xl max-h-52 overflow-auto">
-                            {Array.from(
-                              new Map(
-                                veiculos
-                                  .filter((v) => v.NR_PLACA?.toLowerCase().includes(buscaPlaca.toLowerCase()))
-                                  .map((v) => [v.NR_PLACA, v])
-                              ).values()
-                            )
-                              .slice(0, 8)
-                              .map((v, i) => (
+                        {mostrarListaBaseOrigem && (
+                          <div className="absolute z-20 w-full mt-1.5 bg-[#132337] border border-emerald-500/25 rounded-xl shadow-2xl max-h-40 overflow-auto">
+                            {origens
+                              .filter((b) =>
+                                b.nome.toLowerCase().includes(baseOrigem.toLowerCase())
+                              )
+                              .map((b) => (
                                 <button
-                                  key={`${v.NR_PLACA}-${i}`}
+                                  key={b.id}
                                   type="button"
                                   onClick={() => {
-                                    setVeiculoSelecionado(v)
-                                    setBuscaPlaca(v.NR_PLACA)
-                                    setMostrarListaPlaca(false)
+                                    setBaseOrigem(b.nome)
+                                    setMostrarListaBaseOrigem(false)
                                   }}
-                                  className="w-full text-left px-4 py-2.5 hover:bg-emerald-500/10 border-b border-white/5 last:border-0"
+                                  className="w-full text-left px-4 py-2.5 hover:bg-emerald-500/10 text-sm text-slate-200 border-b border-white/5 last:border-0"
                                 >
-                                  <div className="font-semibold text-emerald-300">{v.NR_PLACA}</div>
-                                  <div className="text-xs text-slate-400">{v.DS_MODELO}{v.DS_MARCA ? ` • ${v.DS_MARCA}` : ''}</div>
+                                  {b.nome}
                                 </button>
                               ))}
                           </div>
                         )}
                       </div>
-                    ) : (
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Placa externa</label>
-                          <input
-                            type="text"
-                            value={placaExterna}
-                            onChange={(e) => setPlacaExterna(e.target.value.toUpperCase())}
-                            placeholder="ABC1D23"
-                            className="w-full px-4 py-2.5 bg-[#132337] border border-orange-500/20 rounded-xl text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-400/40 uppercase transition"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Modelo</label>
-                          <input
-                            type="text"
-                            value={modeloExterno}
-                            onChange={(e) => setModeloExterno(e.target.value)}
-                            placeholder="Ex: Strada"
-                            className="w-full px-4 py-2.5 bg-[#132337] border border-orange-500/20 rounded-xl text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-400/40 transition"
-                          />
-                        </div>
-                      </div>
-                    )}
 
-                    <div className="grid grid-cols-2 gap-3">
-                      <div data-dropdown>
-                        <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">KM Atual</label>
+                      <div data-dropdown className="relative">
+                        <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+                          Base destino
+                        </label>
                         <input
-                          type="number"
-                          value={km}
-                          onChange={(e) => setKm(e.target.value)}
-                          placeholder="0"
-                          className="w-full px-4 py-2.5 bg-[#132337] border border-emerald-500/20 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-400/40 transition"
+                          type="text"
+                          value={baseDestino}
+                          onChange={(e) => {
+                            setBaseDestino(e.target.value)
+                            setMostrarListaBaseDestino(true)
+                          }}
+                          onFocus={() => setMostrarListaBaseDestino(true)}
+                          placeholder="Buscar base destino..."
+                          className="w-full px-4 py-2.5 bg-[#132337] border border-emerald-500/20 rounded-xl text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/40 transition"
                         />
+                        {mostrarListaBaseDestino && (
+                          <div className="absolute z-20 w-full mt-1.5 bg-[#132337] border border-emerald-500/25 rounded-xl shadow-2xl max-h-40 overflow-auto">
+                            {origens
+                              .filter((b) =>
+                                b.nome.toLowerCase().includes(baseDestino.toLowerCase())
+                              )
+                              .map((b) => (
+                                <button
+                                  key={b.id}
+                                  type="button"
+                                  onClick={() => {
+                                    setBaseDestino(b.nome)
+                                    setMostrarListaBaseDestino(false)
+                                  }}
+                                  className="w-full text-left px-4 py-2.5 hover:bg-emerald-500/10 text-sm text-slate-200 border-b border-white/5 last:border-0"
+                                >
+                                  {b.nome}
+                                </button>
+                              ))}
+                          </div>
+                        )}
                       </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-4xl">
+                      {MotoristaDropdown(true)}
                       <div>
-                        <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Data e Hora</label>
+                        <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+                          Data e hora
+                        </label>
                         <input
                           type="datetime-local"
                           value={dataHora}
@@ -325,205 +570,31 @@ export default function LiberacaoPage() {
                       </div>
                     </div>
 
-                    <div data-dropdown className="relative">
-                      <div className="flex items-center justify-between mb-1.5">
-                        <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Motorista</label>
-                        <button type="button" onClick={() => setMostrarFormMotorista(!mostrarFormMotorista)} className="text-xs text-emerald-400 hover:text-emerald-300">
-                          + Cadastrar
-                        </button>
-                      </div>
-                      {mostrarFormMotorista && (
-                        <div className="mb-2 flex gap-2">
-                          <input
-                            type="text"
-                            value={novoMotorista}
-                            onChange={(e) => setNovoMotorista(e.target.value)}
-                            placeholder="Nome..."
-                            className="flex-1 px-3 py-2 bg-[#132337] border border-emerald-500/20 rounded-lg text-sm text-white"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => cadastrarItem('motoristas', novoMotorista, setBuscaMotorista, setMotoristaSelecionado, setMostrarFormMotorista, setNovoMotorista)}
-                            className="px-3 py-2 bg-emerald-500 text-[#0a1625] text-sm font-semibold rounded-lg"
-                          >
-                            Salvar
-                          </button>
-                        </div>
-                      )}
-                      <input
-                        type="text"
-                        value={buscaMotorista}
-                        onChange={(e) => {
-                          setBuscaMotorista(e.target.value)
-                          setMotoristaSelecionado('')
-                          setMostrarListaMotorista(true)
-                        }}
-                        onFocus={() => setMostrarListaMotorista(true)}
-                        placeholder="Buscar motorista..."
-                        className="w-full px-4 py-2.5 bg-[#132337] border border-emerald-500/20 rounded-xl text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/40 transition"
+                    <div className="max-w-4xl">
+                      <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+                        Observação
+                      </label>
+                      <textarea
+                        value={observacao}
+                        onChange={(e) => setObservacao(e.target.value)}
+                        rows={2}
+                        placeholder="Ex: Veículo realocado para operar em Canoas"
+                        className="w-full px-4 py-2.5 bg-[#132337] border border-emerald-500/20 rounded-xl text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/40 transition resize-none"
                       />
-                      {motoristaSelecionado && (
-                        <div className="mt-2 px-3 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-sm text-emerald-300">
-                          {motoristaSelecionado}
-                        </div>
-                      )}
-                      {mostrarListaMotorista && !motoristaSelecionado && (
-                        <div className="absolute z-20 w-full mt-1.5 bg-[#132337] border border-emerald-500/25 rounded-xl shadow-2xl max-h-40 overflow-auto">
-                          {motoristas
-                            .filter((m) => m.nome.toLowerCase().includes(buscaMotorista.toLowerCase()))
-                            .map((m) => (
-                              <button
-                                key={m.id}
-                                type="button"
-                                onClick={() => {
-                                  setMotoristaSelecionado(m.nome)
-                                  setBuscaMotorista(m.nome)
-                                  setMostrarListaMotorista(false)
-                                }}
-                                className="w-full text-left px-4 py-2.5 hover:bg-emerald-500/10 text-sm text-slate-200 border-b border-white/5 last:border-0"
-                              >
-                                {m.nome}
-                              </button>
-                            ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div data-dropdown className="relative">
-                      <div className="flex items-center justify-between mb-1.5">
-                        <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Origem</label>
-                        <button type="button" onClick={() => setMostrarFormOrigem(!mostrarFormOrigem)} className="text-xs text-emerald-400">
-                          + Cadastrar
-                        </button>
-                      </div>
-                      {mostrarFormOrigem && (
-                        <div className="mb-2 flex gap-2">
-                          <input
-                            type="text"
-                            value={novaOrigem}
-                            onChange={(e) => setNovaOrigem(e.target.value)}
-                            placeholder="Nova origem..."
-                            className="flex-1 px-3 py-2 bg-[#132337] border border-emerald-500/20 rounded-lg text-sm text-white"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => cadastrarItem('origens', novaOrigem, setBuscaOrigem, setOrigemSelecionada, setMostrarFormOrigem, setNovaOrigem)}
-                            className="px-3 py-2 bg-emerald-500 text-[#0a1625] text-sm font-semibold rounded-lg"
-                          >
-                            Salvar
-                          </button>
-                        </div>
-                      )}
-                      <input
-                        type="text"
-                        value={buscaOrigem}
-                        onChange={(e) => {
-                          setBuscaOrigem(e.target.value)
-                          setOrigemSelecionada('')
-                          setMostrarListaOrigem(true)
-                        }}
-                        onFocus={() => setMostrarListaOrigem(true)}
-                        className="w-full px-4 py-2.5 bg-[#132337] border border-emerald-500/20 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-400/40 transition"
-                      />
-                      {mostrarListaOrigem && (
-                        <div className="absolute z-20 w-full mt-1.5 bg-[#132337] border border-emerald-500/25 rounded-xl shadow-2xl max-h-40 overflow-auto">
-                          {origens
-                            .filter((o) => o.nome.toLowerCase().includes(buscaOrigem.toLowerCase()))
-                            .map((o) => (
-                              <button
-                                key={o.id}
-                                type="button"
-                                onClick={() => {
-                                  setOrigemSelecionada(o.nome)
-                                  setBuscaOrigem(o.nome)
-                                  setMostrarListaOrigem(false)
-                                }}
-                                className="w-full text-left px-4 py-2.5 hover:bg-emerald-500/10 text-sm text-slate-200 border-b border-white/5 last:border-0"
-                              >
-                                {o.nome}
-                              </button>
-                            ))}
-                        </div>
-                      )}
                     </div>
 
-                    <div data-dropdown className="relative">
-                      <div className="flex items-center justify-between mb-1.5">
-                        <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Destino</label>
-                        <button type="button" onClick={() => setMostrarFormDestino(!mostrarFormDestino)} className="text-xs text-emerald-400">
-                          + Cadastrar
-                        </button>
-                      </div>
-                      {mostrarFormDestino && (
-                        <div className="mb-2 flex gap-2">
-                          <input
-                            type="text"
-                            value={novoDestino}
-                            onChange={(e) => setNovoDestino(e.target.value)}
-                            placeholder="Novo destino..."
-                            className="flex-1 px-3 py-2 bg-[#132337] border border-emerald-500/20 rounded-lg text-sm text-white"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => cadastrarItem('destinos', novoDestino, setBuscaDestino, setDestinoSelecionado, setMostrarFormDestino, setNovoDestino)}
-                            className="px-3 py-2 bg-emerald-500 text-[#0a1625] text-sm font-semibold rounded-lg"
-                          >
-                            Salvar
-                          </button>
-                        </div>
-                      )}
-                      <input
-                        type="text"
-                        value={buscaDestino}
-                        onChange={(e) => {
-                          setBuscaDestino(e.target.value)
-                          setDestinoSelecionado('')
-                          setMostrarListaDestino(true)
-                        }}
-                        onFocus={() => setMostrarListaDestino(true)}
-                        placeholder="Buscar destino..."
-                        className="w-full px-4 py-2.5 bg-[#132337] border border-emerald-500/20 rounded-xl text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/40 transition"
-                      />
-                      {mostrarListaDestino && !destinoSelecionado && (
-                        <div className="absolute z-20 w-full mt-1.5 bg-[#132337] border border-emerald-500/25 rounded-xl shadow-2xl max-h-40 overflow-auto">
-                          {destinos
-                            .filter((d) => d.nome.toLowerCase().includes(buscaDestino.toLowerCase()))
-                            .map((d) => (
-                              <button
-                                key={d.id}
-                                type="button"
-                                onClick={() => {
-                                  setDestinoSelecionado(d.nome)
-                                  setBuscaDestino(d.nome)
-                                  setMostrarListaDestino(false)
-                                }}
-                                className="w-full text-left px-4 py-2.5 hover:bg-emerald-500/10 text-sm text-slate-200 border-b border-white/5 last:border-0"
-                              >
-                                {d.nome}
-                              </button>
-                            ))}
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="pt-2">
+                    <div className="pt-2 max-w-4xl">
                       <button
                         type="submit"
                         disabled={carregando}
-                        className={`w-full font-semibold py-3 rounded-xl transition ${
-                          tipoVeiculo === 'interno'
-                            ? 'bg-emerald-500 hover:bg-emerald-400 text-[#0a1625] shadow-[0_0_20px_rgba(16,185,129,0.25)]'
-                            : 'bg-orange-500 hover:bg-orange-400 text-[#0a1625] shadow-[0_0_20px_rgba(249,115,22,0.25)]'
-                        } disabled:opacity-40`}
+                        className="w-full bg-blue-500 hover:bg-blue-400 text-white font-semibold py-3 rounded-xl transition disabled:opacity-40"
                       >
-                        {carregando ? 'Liberando...' : tipoVeiculo === 'interno' ? 'Liberar Veículo da Empresa' : 'Liberar Veículo Externo'}
+                        {carregando ? 'Salvando...' : 'Registrar Transferência'}
                       </button>
                     </div>
 
                     {mensagem && (
-                      <div className={`p-3 rounded-xl text-sm ${
+                      <div className={`p-3 rounded-xl text-sm max-w-4xl ${
                         mensagem.includes('sucesso')
                           ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20'
                           : 'bg-red-500/10 text-red-300 border border-red-500/20'
@@ -532,9 +603,309 @@ export default function LiberacaoPage() {
                       </div>
                     )}
                   </div>
-                </div>
+                ) : (
+                  /* ======= FORMULÁRIO DE LIBERAÇÃO ======= */
+                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      {tipoVeiculo === 'interno' ? (
+                        <div data-dropdown className="relative">
+                          <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Veículo</label>
+                          <input
+                            type="text"
+                            value={buscaPlaca}
+                            onChange={(e) => {
+                              setBuscaPlaca(e.target.value)
+                              setVeiculoSelecionado(null)
+                              setMostrarListaPlaca(true)
+                            }}
+                            onFocus={() => setMostrarListaPlaca(true)}
+                            placeholder="Buscar por placa..."
+                            className="w-full px-4 py-2.5 bg-[#132337] border border-emerald-500/20 rounded-xl text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/40 uppercase transition"
+                          />
+                          {veiculoSelecionado && (
+                            <div className="mt-2 px-3 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-sm text-emerald-300">
+                              {veiculoSelecionado.NR_PLACA} — {veiculoSelecionado.DS_MODELO}
+                            </div>
+                          )}
+                          {mostrarListaPlaca && !veiculoSelecionado && buscaPlaca.length >= 1 && (
+                            <div className="absolute z-20 w-full mt-1.5 bg-[#132337] border border-emerald-500/25 rounded-xl shadow-2xl max-h-52 overflow-auto">
+                              {Array.from(
+                                new Map(
+                                  veiculos
+                                    .filter((v) => v.NR_PLACA?.toLowerCase().includes(buscaPlaca.toLowerCase()))
+                                    .map((v) => [v.NR_PLACA, v])
+                                ).values()
+                              )
+                                .slice(0, 8)
+                                .map((v, i) => (
+                                  <button
+                                    key={`${v.NR_PLACA}-${i}`}
+                                    type="button"
+                                    onClick={() => {
+                                      setVeiculoSelecionado(v)
+                                      setBuscaPlaca(v.NR_PLACA)
+                                      setMostrarListaPlaca(false)
+                                    }}
+                                    className="w-full text-left px-4 py-2.5 hover:bg-emerald-500/10 border-b border-white/5 last:border-0"
+                                  >
+                                    <div className="font-semibold text-emerald-300">{v.NR_PLACA}</div>
+                                    <div className="text-xs text-slate-400">{v.DS_MODELO}{v.DS_MARCA ? ` • ${v.DS_MARCA}` : ''}</div>
+                                  </button>
+                                ))}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Placa externa</label>
+                            <input
+                              type="text"
+                              value={placaExterna}
+                              onChange={(e) => setPlacaExterna(e.target.value.toUpperCase())}
+                              placeholder="ABC1D23"
+                              className="w-full px-4 py-2.5 bg-[#132337] border border-orange-500/20 rounded-xl text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-400/40 uppercase transition"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Modelo</label>
+                            <input
+                              type="text"
+                              value={modeloExterno}
+                              onChange={(e) => setModeloExterno(e.target.value)}
+                              placeholder="Ex: Strada"
+                              className="w-full px-4 py-2.5 bg-[#132337] border border-orange-500/20 rounded-xl text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-400/40 transition"
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div data-dropdown>
+                          <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">KM Atual</label>
+                          <input
+                            type="number"
+                            value={km}
+                            onChange={(e) => setKm(e.target.value)}
+                            placeholder="0"
+                            className="w-full px-4 py-2.5 bg-[#132337] border border-emerald-500/20 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-400/40 transition"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Data e Hora</label>
+                          <input
+                            type="datetime-local"
+                            value={dataHora}
+                            onChange={(e) => setDataHora(e.target.value)}
+                            className="w-full px-4 py-2.5 bg-[#132337] border border-emerald-500/20 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-400/40 transition"
+                          />
+                        </div>
+                      </div>
+
+                      {MotoristaDropdown(false)}
+                    </div>
+
+                    <div className="space-y-4">
+                      <div data-dropdown className="relative">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Origem</label>
+                          <button type="button" onClick={() => setMostrarFormOrigem(!mostrarFormOrigem)} className="text-xs text-emerald-400">
+                            + Cadastrar
+                          </button>
+                        </div>
+                        {mostrarFormOrigem && (
+                          <div className="mb-2 flex gap-2">
+                            <input
+                              type="text"
+                              value={novaOrigem}
+                              onChange={(e) => setNovaOrigem(e.target.value)}
+                              placeholder="Nova origem..."
+                              className="flex-1 px-3 py-2 bg-[#132337] border border-emerald-500/20 rounded-lg text-sm text-white"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => cadastrarItem('origens', novaOrigem, setBuscaOrigem, setOrigemSelecionada, setMostrarFormOrigem, setNovaOrigem)}
+                              className="px-3 py-2 bg-emerald-500 text-[#0a1625] text-sm font-semibold rounded-lg"
+                            >
+                              Salvar
+                            </button>
+                          </div>
+                        )}
+                        <input
+                          type="text"
+                          value={buscaOrigem}
+                          onChange={(e) => {
+                            setBuscaOrigem(e.target.value)
+                            setOrigemSelecionada('')
+                            setMostrarListaOrigem(true)
+                          }}
+                          onFocus={() => setMostrarListaOrigem(true)}
+                          className="w-full px-4 py-2.5 bg-[#132337] border border-emerald-500/20 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-400/40 transition"
+                        />
+                        {mostrarListaOrigem && (
+                          <div className="absolute z-20 w-full mt-1.5 bg-[#132337] border border-emerald-500/25 rounded-xl shadow-2xl max-h-40 overflow-auto">
+                            {origens
+                              .filter((o) => o.nome.toLowerCase().includes(buscaOrigem.toLowerCase()))
+                              .map((o) => (
+                                <button
+                                  key={o.id}
+                                  type="button"
+                                  onClick={() => {
+                                    setOrigemSelecionada(o.nome)
+                                    setBuscaOrigem(o.nome)
+                                    setMostrarListaOrigem(false)
+                                  }}
+                                  className="w-full text-left px-4 py-2.5 hover:bg-emerald-500/10 text-sm text-slate-200 border-b border-white/5 last:border-0"
+                                >
+                                  {o.nome}
+                                </button>
+                              ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div data-dropdown className="relative">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Destino</label>
+                          <button type="button" onClick={() => setMostrarFormDestino(!mostrarFormDestino)} className="text-xs text-emerald-400">
+                            + Cadastrar
+                          </button>
+                        </div>
+                        {mostrarFormDestino && (
+                          <div className="mb-2 flex gap-2">
+                            <input
+                              type="text"
+                              value={novoDestino}
+                              onChange={(e) => setNovoDestino(e.target.value)}
+                              placeholder="Novo destino..."
+                              className="flex-1 px-3 py-2 bg-[#132337] border border-emerald-500/20 rounded-lg text-sm text-white"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => cadastrarItem('destinos', novoDestino, setBuscaDestino, setDestinoSelecionado, setMostrarFormDestino, setNovoDestino)}
+                              className="px-3 py-2 bg-emerald-500 text-[#0a1625] text-sm font-semibold rounded-lg"
+                            >
+                              Salvar
+                            </button>
+                          </div>
+                        )}
+                        <input
+                          type="text"
+                          value={buscaDestino}
+                          onChange={(e) => {
+                            setBuscaDestino(e.target.value)
+                            setDestinoSelecionado('')
+                            setMostrarListaDestino(true)
+                          }}
+                          onFocus={() => setMostrarListaDestino(true)}
+                          placeholder="Buscar destino..."
+                          className="w-full px-4 py-2.5 bg-[#132337] border border-emerald-500/20 rounded-xl text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/40 transition"
+                        />
+                        {mostrarListaDestino && !destinoSelecionado && (
+                          <div className="absolute z-20 w-full mt-1.5 bg-[#132337] border border-emerald-500/25 rounded-xl shadow-2xl max-h-40 overflow-auto">
+                            {destinos
+                              .filter((d) => d.nome.toLowerCase().includes(buscaDestino.toLowerCase()))
+                              .map((d) => (
+                                <button
+                                  key={d.id}
+                                  type="button"
+                                  onClick={() => {
+                                    setDestinoSelecionado(d.nome)
+                                    setBuscaDestino(d.nome)
+                                    setMostrarListaDestino(false)
+                                  }}
+                                  className="w-full text-left px-4 py-2.5 hover:bg-emerald-500/10 text-sm text-slate-200 border-b border-white/5 last:border-0"
+                                >
+                                  {d.nome}
+                                </button>
+                              ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="pt-2">
+                        <button
+                          type="submit"
+                          disabled={carregando}
+                          className={`w-full font-semibold py-3 rounded-xl transition ${
+                            tipoVeiculo === 'interno'
+                              ? 'bg-emerald-500 hover:bg-emerald-400 text-[#0a1625] shadow-[0_0_20px_rgba(16,185,129,0.25)]'
+                              : 'bg-orange-500 hover:bg-orange-400 text-[#0a1625] shadow-[0_0_20px_rgba(249,115,22,0.25)]'
+                          } disabled:opacity-40`}
+                        >
+                          {carregando ? 'Liberando...' : tipoVeiculo === 'interno' ? 'Liberar Veículo da Empresa' : 'Liberar Veículo Externo'}
+                        </button>
+                      </div>
+
+                      {mensagem && (
+                        <div className={`p-3 rounded-xl text-sm ${
+                          mensagem.includes('sucesso')
+                            ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20'
+                            : 'bg-red-500/10 text-red-300 border border-red-500/20'
+                        }`}>
+                          {mensagem}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </form>
             </div>
+            
+            {/* Histórico de Transferências caso a aba seja transferencia */}
+            {tipoVeiculo === 'transferencia' && (
+              <div className="mt-8">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-lg font-semibold text-white tracking-tight">
+                    Histórico de Transferências
+                  </h3>
+                  <input
+                    type="text"
+                    value={buscaFiltroTransf}
+                    onChange={(e) => setBuscaFiltroTransf(e.target.value)}
+                    placeholder="Filtrar..."
+                    className="w-56 px-3 py-2 bg-[#132337] border border-emerald-500/20 rounded-xl text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/40"
+                  />
+                </div>
+
+                <div className="bg-[#0f1c2e] rounded-2xl border border-emerald-500/15 overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full text-sm">
+                      <thead>
+                        <tr className="bg-[#132337] border-b border-emerald-500/15">
+                          <th className="px-5 py-3.5 text-left text-xs font-semibold text-emerald-400/90 uppercase tracking-wider">Placa</th>
+                          <th className="px-5 py-3.5 text-left text-xs font-semibold text-emerald-400/90 uppercase tracking-wider">De</th>
+                          <th className="px-5 py-3.5 text-left text-xs font-semibold text-emerald-400/90 uppercase tracking-wider">Para</th>
+                          <th className="px-5 py-3.5 text-left text-xs font-semibold text-emerald-400/90 uppercase tracking-wider">Motorista</th>
+                          <th className="px-5 py-3.5 text-left text-xs font-semibold text-emerald-400/90 uppercase tracking-wider">Data</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/5">
+                        {transferenciasFiltradas.length === 0 ? (
+                          <tr>
+                            <td colSpan={5} className="px-5 py-10 text-center text-slate-500">
+                              Nenhuma transferência registrada.
+                            </td>
+                          </tr>
+                        ) : (
+                          transferenciasFiltradas.map((t) => (
+                            <tr key={t.id} className="hover:bg-emerald-500/5 transition-colors">
+                              <td className="px-5 py-3.5 font-medium text-emerald-300">{t.placa}</td>
+                              <td className="px-5 py-3.5 text-slate-300">{t.base_origem}</td>
+                              <td className="px-5 py-3.5 text-slate-300">{t.base_destino}</td>
+                              <td className="px-5 py-3.5 text-slate-400">{t.motorista || '—'}</td>
+                              <td className="px-5 py-3.5 text-slate-500 text-xs">
+                                {formatarData(t.transferido_em)}
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </main>
       </div>
