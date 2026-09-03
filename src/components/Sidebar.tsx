@@ -5,10 +5,11 @@ import { useState } from 'react'
 import { useTheme } from '@/components/ThemeProvider'
 import { UserButton } from '@clerk/nextjs'
 
+
 export default function Sidebar() {
   const pathname = usePathname()
   const { theme, toggleTheme } = useTheme()
-const [portariaAberta, setPortariaAberta] = useState(
+  const [portariaAberta, setPortariaAberta] = useState(
   pathname === '/portaria' || pathname === '/liberacao' || pathname === '/transferencia'
 )
 
@@ -19,13 +20,13 @@ const [portariaAberta, setPortariaAberta] = useState(
       {/* Logo */}
       <div className="px-6 py-6 border-b border-white/10">
         <div className="flex items-center gap-3">
-          <img
-            src="/images/logo-filtroamb.png"
-            alt="Filtroamb"
-            className="h-9 w-auto object-contain"
-          />
+       <img
+       src={theme === 'dark' ? '/images/logo-filtroamb-dark.png' : '/images/logo-filtroamb.png'}
+        alt="Filtroamb"
+         className="h-13 w-auto object-contain"
+         />
         </div>
-        <p className="text-[11px] text-slate-400 mt-2">Gestão de Frota</p>
+        <p className="text-[15px] text-slate-400 mt-2">Gestão de Frota</p>
       </div>
 
       {/* Menu */}
@@ -121,7 +122,7 @@ const [portariaAberta, setPortariaAberta] = useState(
       <div className="px-4 py-3 border-t border-white/10 flex items-center justify-between">
        <div>
        <p className="text-[11px] text-slate-500">Sistema Interno</p>
-      <p className="text-[10px] text-slate-600 mt-0.5">v0.3</p>
+      <p className="text-[10px] text-slate-600 mt-0.5">v1.0</p>
        </div>
              <UserButton />
       </div>

@@ -1,74 +1,71 @@
+'use client'
+
 import { SignIn } from '@clerk/nextjs'
-import Image from 'next/image'
+import { useTheme } from '@/components/ThemeProvider'
 
 export default function Page() {
+  const { theme, toggleTheme } = useTheme()
+
   return (
-    <div className="min-h-screen flex">
-      {/* Lado esquerdo - banner */}
-      <div className="hidden lg:flex w-1/2 relative">
-        <img
-          src="/images/banner-frota.jpg"
-          alt="Filtroamb"
-          className="absolute inset-0 w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-[#0a1625]/90 to-[#0a1625]/50" />
-        <div className="relative z-10 flex flex-col justify-between p-10 w-full">
-          <div>
-            <img
-              src="/images/logo-filtroamb.png"
-              alt="Filtroamb"
-              className="h-10 w-auto object-contain"
-            />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold text-white leading-tight">
-              Gestão de Frota
-            </h1>
-            <p className="text-emerald-300 mt-2 text-sm">
-              Sistema interno Filtroamb
-            </p>
-          </div>
-          <p className="text-xs text-slate-400">
-            Acesso restrito a colaboradores autorizados
-          </p>
+    <div className="min-h-screen relative flex items-center justify-center p-6">
+    
+      <img
+        src="/images/banner-frota.jpg"
+        alt="Filtroamb"
+        className="absolute inset-0 w-full h-full object-cover"
+      />
+      <div className="absolute inset-0 bg-[#0a1625]/75" />
+
+      {/* Botão do tema claro e escuro */}
+      <button
+        type="button"
+        onClick={toggleTheme}
+        className="absolute top-5 right-5 z-20 flex items-center gap-2 px-3 py-2 rounded-xl bg-black/30 border border-white/10 text-white text-sm hover:bg-black/50 transition"
+      >
+        <span>{theme === 'dark' ? '🌙' : '☀️'}</span>
+        <span>{theme === 'dark' ? 'Escuro' : 'Claro'}</span>
+      </button>
+
+      {/* Conteúdo */}
+      <div className="relative z-10 w-full max-w-md">
+        {/* Logo */}
+        <div className="flex justify-center mb-6">
+          <img
+            src="/images/logo-filtroamb.png"
+            alt="Filtroamb"
+            className="h-12 w-auto object-contain drop-shadow-lg"
+          />
         </div>
-      </div>
 
-      {/* Lado direito - login */}
-      <div className="flex-1 flex items-center justify-center bg-[#0a1625] p-6">
-        <div className="w-full max-w-md">
-          <div className="lg:hidden mb-8 flex justify-center">
-            <img
-              src="/images/logo-filtroamb.png"
-              alt="Filtroamb"
-              className="h-10 w-auto object-contain"
-            />
-          </div>
+        <div className="text-center mb-6">
+          <h1 className="text-2xl font-bold text-white drop-shadow">Gestão de Frota</h1>
+          <p className="text-sm text-emerald-400 mt-1">Sistema interno Filtroamb</p>
+        </div>
 
-       <SignIn
-     path="/sign-in"
-     signUpUrl="/sign-up"
-      appearance={{
-      elements: {
-      rootBox: 'mx-auto',
-      card: 'bg-[#0f1c2e] border border-emerald-500/15 shadow-2xl',
-      headerTitle: 'text-white',
-      headerSubtitle: 'text-slate-400',
-      socialButtonsBlockButton:
-        'bg-[#132337] border border-white/10 text-white hover:bg-[#1a2d45]',
-      formFieldLabel: 'text-slate-300',
-      formFieldInput:
-        'bg-[#132337] border border-emerald-500/20 text-white',
-      footerActionLink: 'text-emerald-400 hover:text-emerald-300',
-      formButtonPrimary:
-        'bg-emerald-500 hover:bg-emerald-400 text-[#0a1625]',
-      identityPreviewText: 'text-white',
-      identityPreviewEditButton: 'text-emerald-400',
-           },
+        <SignIn
+          appearance={{
+            elements: {
+              rootBox: 'mx-auto',
+              card: 'bg-[#0f1c2e]/95 border border-emerald-400/20 shadow-2xl backdrop-blur',
+              headerTitle: 'text-black',
+              headerSubtitle: 'text-slate-400',
+              formFieldLabel: 'text-slate-300',
+              formFieldInput:
+                'bg-[#132337] border border-emerald-400/20 text-white',
+              footerActionLink: 'text-emerald-400 hover:text-emerald-400',
+              formButtonPrimary:
+                'bg-emerald-400 hover:bg-emerald-400 text-[#0a1625] font-semibold',
+              identityPreviewText: 'text-white',
+              identityPreviewEditButton: 'text-emerald-400',
+              socialButtonsBlockButton:
+                'bg-[#132337] border border-white/10 text-white',
+            },
           }}
-            />            
+        />
 
-        </div>
+        <p className="text-center text-xs text-slate-400 mt-6">
+          Acesso restrito a colaboradores autorizados
+        </p>
       </div>
     </div>
   )
