@@ -36,7 +36,7 @@ export default function LiberacaoPage() {
   const [motoristas, setMotoristas] = useState<Item[]>([])
   const [listaTransferencias, setListaTransferencias] = useState<Transferencia[]>([])
 
-  const [tipoVeiculo, setTipoVeiculo] = useState<'interno' | 'externo' | 'transferencia'>('interno')
+  const [tipoVeiculo, setTipoVeiculo] = useState<'interno' | 'externo' | 'transferencia' | 'pedestre'>('interno')
 
   const [buscaPlaca, setBuscaPlaca] = useState('')
   const [veiculoSelecionado, setVeiculoSelecionado] = useState<Veiculo | null>(null)
@@ -73,6 +73,12 @@ export default function LiberacaoPage() {
   const [mostrarListaBaseDestino, setMostrarListaBaseDestino] = useState(false)
   const [observacao, setObservacao] = useState('')
   const [buscaFiltroTransf, setBuscaFiltroTransf] = useState('')
+
+  // States specific to Pedestre
+  const [nomePedestre, setNomePedestre] = useState('')
+  const [cpfPedestre, setCpfPedestre] = useState('')
+  const [telefonePedestre, setTelefonePedestre] = useState('')
+  const [empresaPedestre, setEmpresaPedestre] = useState('')
 
   const [carregando, setCarregando] = useState(false)
   const [mensagem, setMensagem] = useState('')
@@ -136,6 +142,50 @@ export default function LiberacaoPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+
+    if (tipoVeiculo === 'pedestre') {
+      if (!nomePedestre) {
+        setMensagem('Preencha o nome do pedestre/visitante')
+        return
+      }
+      if (!destinoSelecionado && !buscaDestino) {
+        setMensagem('Selecione o destino (ex: Setor Comercial, Diretoria, etc)')
+        return
+      }
+
+      setCarregando(true)
+      setMensagem('')
+
+      const { error } = await supabase.from('movimentacoes_pedestres').insert({
+        nome: nomePedestre,
+        cpf: cpfPedestre || null,
+        telefone: telefonePedestre || null,
+        empresa: empresaPedestre || null,
+        destino: destinoSelecionado || buscaDestino,
+        status: 'aguardando_entrada',
+        liberado_por: 'Gestor',
+        liberado_em: dataHora
+          ? new Date(dataHora).toISOString()
+          : new Date().toISOString(),
+      })
+
+      setCarregando(false)
+
+      if (error) {
+        setMensagem('Erro ao liberar pedestre: ' + error.message)
+        return
+      }
+
+      setMensagem('Pedestre liberado com sucesso! A Portaria já pode ver.')
+      setNomePedestre('')
+      setCpfPedestre('')
+      setTelefonePedestre('')
+      setEmpresaPedestre('')
+      setDestinoSelecionado('')
+      setBuscaDestino('')
+      setDataHora('')
+      return
+    }
 
     if (tipoVeiculo === 'transferencia') {
       if (!veiculoSelecionado) {
@@ -340,12 +390,13 @@ export default function LiberacaoPage() {
           <div data-banner className="absolute inset-0 flex items-end pb-4 px-8">
             <div>
               <h1 className="text-xl font-bold text-white tracking-tight">
-                {tipoVeiculo === 'transferencia' ? 'Transferência de Bases' : 'Liberação Portaria'}
+                {tipoVeiculo === 'transferencia' ? 'Transferência de Bases' : 
+                 tipoVeiculo === 'pedestre' ? 'Liberação de Pedestres / Visitantes' : 'Liberação Portaria'}
               </h1>
               <p className="text-sm text-emerald-300 mt-0.5">
-                {tipoVeiculo === 'transferencia' 
-                  ? 'Mudança definitiva de base (não fica em rota)' 
-                  : 'Autorize a saída de veículos internos ou externos'}
+                {tipoVeiculo === 'transferencia' ? 'Mudança definitiva de base (não fica em rota)' :
+                 tipoVeiculo === 'pedestre' ? 'Autorize a entrada de terceiros, visitantes e funcionários sem veículo' :
+                 'Autorize a saída de veículos internos ou externos'}
               </p>
             </div>
           </div>
@@ -360,7 +411,7 @@ export default function LiberacaoPage() {
                   setTipoVeiculo('interno')
                   setMensagem('')
                 }}
-                className={`flex-1 min-w-[200px] py-3 px-4 rounded-xl text-sm font-semibold transition-all duration-200 border ${
+                className={`flex-1 min-w-[180px] py-3 px-4 rounded-xl text-sm font-semibold transition-all duration-200 border ${
                   tipoVeiculo === 'interno'
                     ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300 shadow-[0_0_20px_rgba(16,185,129,0.25)]'
                     : 'bg-[#0f1c2e] border-white/10 text-slate-400 hover:border-emerald-500/30 hover:shadow-[0_8px_24px_rgba(0,0,0,0.35)] hover:-translate-y-0.5'
@@ -374,7 +425,7 @@ export default function LiberacaoPage() {
                   setTipoVeiculo('externo')
                   setMensagem('')
                 }}
-                className={`flex-1 min-w-[200px] py-3 px-4 rounded-xl text-sm font-semibold transition-all duration-200 border ${
+                className={`flex-1 min-w-[180px] py-3 px-4 rounded-xl text-sm font-semibold transition-all duration-200 border ${
                   tipoVeiculo === 'externo'
                     ? 'bg-orange-500/15 border-orange-500/40 text-orange-300 shadow-[0_0_20px_rgba(249,115,22,0.25)]'
                     : 'bg-[#0f1c2e] border-white/10 text-slate-400 hover:border-orange-500/30 hover:shadow-[0_8px_24px_rgba(0,0,0,0.35)] hover:-translate-y-0.5'
@@ -385,10 +436,24 @@ export default function LiberacaoPage() {
               <button
                 type="button"
                 onClick={() => {
+                  setTipoVeiculo('pedestre')
+                  setMensagem('')
+                }}
+                className={`flex-1 min-w-[180px] py-3 px-4 rounded-xl text-sm font-semibold transition-all duration-200 border ${
+                  tipoVeiculo === 'pedestre'
+                    ? 'bg-purple-500/15 border-purple-500/40 text-purple-300 shadow-[0_0_20px_rgba(168,85,247,0.25)]'
+                    : 'bg-[#0f1c2e] border-white/10 text-slate-400 hover:border-purple-500/30 hover:shadow-[0_8px_24px_rgba(0,0,0,0.35)] hover:-translate-y-0.5'
+                }`}
+              >
+                Pedestres / Visitantes
+              </button>
+              <button
+                type="button"
+                onClick={() => {
                   setTipoVeiculo('transferencia')
                   setMensagem('')
                 }}
-                className={`flex-1 min-w-[200px] py-3 px-4 rounded-xl text-sm font-semibold transition-all duration-200 border ${
+                className={`flex-1 min-w-[180px] py-3 px-4 rounded-xl text-sm font-semibold transition-all duration-200 border ${
                   tipoVeiculo === 'transferencia'
                     ? 'bg-blue-500/15 border-blue-500/40 text-blue-300 shadow-[0_0_20px_rgba(59,130,246,0.25)]'
                     : 'bg-[#0f1c2e] border-white/10 text-slate-400 hover:border-blue-500/30 hover:shadow-[0_8px_24px_rgba(0,0,0,0.35)] hover:-translate-y-0.5'
@@ -398,31 +463,186 @@ export default function LiberacaoPage() {
               </button>
             </div>
 
-            {/* Changed from overflow-hidden to overflow-visible to let dropdowns escape */}
             <div className="bg-[#0f1c2e] rounded-2xl border border-emerald-500/15 overflow-visible">
               <div className="px-6 py-3 border-b border-white/5 bg-[#132337]/60 flex items-center justify-between rounded-t-2xl">
                 <div>
                   <h2 className="text-sm font-semibold text-white">
-                    {tipoVeiculo === 'transferencia' ? 'Nova Transferência' : 'Nova Autorização de Saída'}
+                    {tipoVeiculo === 'transferencia' ? 'Nova Transferência' : 
+                     tipoVeiculo === 'pedestre' ? 'Liberar Entrada de Pedestre' : 'Nova Autorização de Saída'}
                   </h2>
                   <p className="text-xs text-slate-500 mt-0.5">
                     {tipoVeiculo === 'interno' && 'Frota própria Filtroamb'}
                     {tipoVeiculo === 'externo' && 'Veículo de terceiro / visitante'}
+                    {tipoVeiculo === 'pedestre' && 'Pessoas entrando a pé ou visitantes que deixam o carro fora'}
                     {tipoVeiculo === 'transferencia' && 'Use quando o veículo muda de base de trabalho'}
                   </p>
                 </div>
                 <span className={`text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full ${
                   tipoVeiculo === 'interno' ? 'bg-emerald-500/15 text-emerald-300' :
                   tipoVeiculo === 'externo' ? 'bg-orange-500/15 text-orange-300' :
+                  tipoVeiculo === 'pedestre' ? 'bg-purple-500/15 text-purple-300' :
                   'bg-blue-500/15 text-blue-300'
                 }`}>
-                  {tipoVeiculo === 'interno' ? 'Interno' : tipoVeiculo === 'externo' ? 'Externo' : 'Transferência'}
+                  {tipoVeiculo === 'interno' ? 'Interno' : 
+                   tipoVeiculo === 'externo' ? 'Externo' : 
+                   tipoVeiculo === 'pedestre' ? 'Pedestre' : 'Transferência'}
                 </span>
               </div>
 
               <form onSubmit={handleSubmit} className="p-6">
                 
-                {tipoVeiculo === 'transferencia' ? (
+                {tipoVeiculo === 'pedestre' ? (
+                  /* ======= FORMULÁRIO DE PEDESTRE ======= */
+                  <div className="space-y-5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-4xl">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+                          Nome Completo *
+                        </label>
+                        <input
+                          type="text"
+                          value={nomePedestre}
+                          onChange={(e) => setNomePedestre(e.target.value)}
+                          placeholder="Ex: João da Silva"
+                          className="w-full px-4 py-2.5 bg-[#132337] border border-purple-500/20 rounded-xl text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-400/40 transition"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+                          CPF
+                        </label>
+                        <input
+                          type="text"
+                          value={cpfPedestre}
+                          onChange={(e) => setCpfPedestre(e.target.value)}
+                          placeholder="000.000.000-00"
+                          className="w-full px-4 py-2.5 bg-[#132337] border border-purple-500/20 rounded-xl text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-400/40 transition"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-4xl">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+                          Telefone
+                        </label>
+                        <input
+                          type="text"
+                          value={telefonePedestre}
+                          onChange={(e) => setTelefonePedestre(e.target.value)}
+                          placeholder="(00) 00000-0000"
+                          className="w-full px-4 py-2.5 bg-[#132337] border border-purple-500/20 rounded-xl text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-400/40 transition"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+                          Empresa / Representação
+                        </label>
+                        <input
+                          type="text"
+                          value={empresaPedestre}
+                          onChange={(e) => setEmpresaPedestre(e.target.value)}
+                          placeholder="Ex: Empresa Parceira LTDA"
+                          className="w-full px-4 py-2.5 bg-[#132337] border border-purple-500/20 rounded-xl text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-400/40 transition"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-4xl">
+                      <div data-dropdown className="relative">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Destino / Setor *</label>
+                          <button type="button" onClick={() => setMostrarFormDestino(!mostrarFormDestino)} className="text-xs text-purple-400 hover:text-purple-300">
+                            + Cadastrar
+                          </button>
+                        </div>
+                        {mostrarFormDestino && (
+                          <div className="mb-2 flex gap-2">
+                            <input
+                              type="text"
+                              value={novoDestino}
+                              onChange={(e) => setNovoDestino(e.target.value)}
+                              placeholder="Novo destino..."
+                              className="flex-1 px-3 py-2 bg-[#132337] border border-purple-500/20 rounded-lg text-sm text-white"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => cadastrarItem('destinos', novoDestino, setBuscaDestino, setDestinoSelecionado, setMostrarFormDestino, setNovoDestino)}
+                              className="px-3 py-2 bg-purple-500 text-[#0a1625] text-sm font-semibold rounded-lg"
+                            >
+                              Salvar
+                            </button>
+                          </div>
+                        )}
+                        <input
+                          type="text"
+                          value={buscaDestino}
+                          onChange={(e) => {
+                            setBuscaDestino(e.target.value)
+                            setDestinoSelecionado('')
+                            setMostrarListaDestino(true)
+                          }}
+                          onFocus={() => setMostrarListaDestino(true)}
+                          placeholder="Buscar destino..."
+                          className="w-full px-4 py-2.5 bg-[#132337] border border-purple-500/20 rounded-xl text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-400/40 transition"
+                        />
+                        {mostrarListaDestino && !destinoSelecionado && (
+                          <div className="absolute z-20 w-full mt-1.5 bg-[#132337] border border-purple-500/25 rounded-xl shadow-2xl max-h-40 overflow-auto">
+                            {destinos
+                              .filter((d) => d.nome.toLowerCase().includes(buscaDestino.toLowerCase()))
+                              .map((d) => (
+                                <button
+                                  key={d.id}
+                                  type="button"
+                                  onClick={() => {
+                                    setDestinoSelecionado(d.nome)
+                                    setBuscaDestino(d.nome)
+                                    setMostrarListaDestino(false)
+                                  }}
+                                  className="w-full text-left px-4 py-2.5 hover:bg-purple-500/10 text-sm text-slate-200 border-b border-white/5 last:border-0"
+                                >
+                                  {d.nome}
+                                </button>
+                              ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+                          Data e hora
+                        </label>
+                        <input
+                          type="datetime-local"
+                          value={dataHora}
+                          onChange={(e) => setDataHora(e.target.value)}
+                          className="w-full px-4 py-2.5 bg-[#132337] border border-purple-500/20 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-purple-400/40 transition"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="pt-2 max-w-4xl">
+                      <button
+                        type="submit"
+                        disabled={carregando}
+                        className="w-full bg-purple-500 hover:bg-purple-400 text-white font-semibold py-3 rounded-xl transition shadow-[0_0_20px_rgba(168,85,247,0.25)] disabled:opacity-40"
+                      >
+                        {carregando ? 'Liberando...' : 'Liberar Entrada de Pedestre'}
+                      </button>
+                    </div>
+
+                    {mensagem && (
+                      <div className={`p-3 rounded-xl text-sm max-w-4xl ${
+                        mensagem.includes('sucesso')
+                          ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20'
+                          : 'bg-red-500/10 text-red-300 border border-red-500/20'
+                      }`}>
+                        {mensagem}
+                      </div>
+                    )}
+                  </div>
+
+                ) : tipoVeiculo === 'transferencia' ? (
                   /* ======= FORMULÁRIO DE TRANSFERÊNCIA ======= */
                   <div className="space-y-5">
                     <div data-dropdown className="relative max-w-xl">
