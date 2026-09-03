@@ -31,7 +31,7 @@ return (
     className="w-full h-full object-cover object-center"
   />
   <div className="absolute inset-0 bg-gradient-to-r from-[#0a1625]/85 via-[#0a1625]/50 to-[#0a1625]/20" />
-  <div className="absolute inset-0 flex items-end pb-6 px-8">
+  <div data-banner className="absolute inset-0 flex items-end pb-6 px-8">
     <div>
       <h1 className="text-2xl font-bold text-white tracking-tight drop-shadow">
         FiltroAmb - Frota Ativa
