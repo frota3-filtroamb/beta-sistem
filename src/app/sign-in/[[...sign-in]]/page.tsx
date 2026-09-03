@@ -16,15 +16,7 @@ export default function Page() {
       />
       <div className="absolute inset-0 bg-[#0a1625]/75" />
 
-      {/* Botão do tema claro e escuro */}
-      <button
-        type="button"
-        onClick={toggleTheme}
-        className="absolute top-5 right-5 z-20 flex items-center gap-2 px-3 py-2 rounded-xl bg-black/30 border border-white/10 text-white text-sm hover:bg-black/50 transition"
-      >
-        <span>{theme === 'dark' ? '🌙' : '☀️'}</span>
-        <span>{theme === 'dark' ? 'Escuro' : 'Claro'}</span>
-      </button>
+    
 
       {/* Conteúdo */}
       <div className="relative z-10 w-full max-w-md">

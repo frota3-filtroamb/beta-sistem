@@ -73,6 +73,21 @@ export default function LiberacaoPage() {
     carregarDados()
   }, [])
 
+  // Fecha dropdowns ao clicar fora
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      const target = e.target as HTMLElement
+      if (!target.closest('[data-dropdown]')) {
+        setMostrarListaPlaca(false)
+        setMostrarListaMotorista(false)
+        setMostrarListaOrigem(false)
+        setMostrarListaDestino(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
   async function cadastrarItem(
     tabela: 'origens' | 'destinos' | 'motoristas',
     valor: string,
@@ -162,7 +177,7 @@ export default function LiberacaoPage() {
         <div className="relative h-36 overflow-hidden">
           <img src="/images/banner-frota.jpg" alt="Filtroamb" className="w-full h-full object-cover object-center" />
           <div className="absolute inset-0 bg-gradient-to-r from-[#0a1625]/90 via-[#0a1625]/55 to-transparent" />
-          <div className="absolute inset-0 flex items-end pb-4 px-8">
+          <div data-banner className="absolute inset-0 flex items-end pb-4 px-8">
             <div>
               <h1 className="text-xl font-bold text-white tracking-tight">Liberação Portaria</h1>
               <p className="text-sm text-emerald-300 mt-0.5">Autorize a saída de veículos internos ou externos</p>
@@ -216,7 +231,7 @@ export default function LiberacaoPage() {
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                   <div className="space-y-4">
                     {tipoVeiculo === 'interno' ? (
-                      <div className="relative">
+                      <div data-dropdown className="relative">
                         <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Veículo</label>
                         <input
                           type="text"
@@ -289,7 +304,7 @@ export default function LiberacaoPage() {
                     )}
 
                     <div className="grid grid-cols-2 gap-3">
-                      <div>
+                      <div data-dropdown>
                         <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">KM Atual</label>
                         <input
                           type="number"
@@ -310,7 +325,7 @@ export default function LiberacaoPage() {
                       </div>
                     </div>
 
-                    <div className="relative">
+                    <div data-dropdown className="relative">
                       <div className="flex items-center justify-between mb-1.5">
                         <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Motorista</label>
                         <button type="button" onClick={() => setMostrarFormMotorista(!mostrarFormMotorista)} className="text-xs text-emerald-400 hover:text-emerald-300">
@@ -376,7 +391,7 @@ export default function LiberacaoPage() {
                   </div>
 
                   <div className="space-y-4">
-                    <div className="relative">
+                    <div data-dropdown className="relative">
                       <div className="flex items-center justify-between mb-1.5">
                         <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Origem</label>
                         <button type="button" onClick={() => setMostrarFormOrigem(!mostrarFormOrigem)} className="text-xs text-emerald-400">
@@ -434,7 +449,7 @@ export default function LiberacaoPage() {
                       )}
                     </div>
 
-                    <div className="relative">
+                    <div data-dropdown className="relative">
                       <div className="flex items-center justify-between mb-1.5">
                         <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Destino</label>
                         <button type="button" onClick={() => setMostrarFormDestino(!mostrarFormDestino)} className="text-xs text-emerald-400">

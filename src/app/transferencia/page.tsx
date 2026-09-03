@@ -74,6 +74,21 @@ export default function TransferenciaPage() {
     carregarDados()
   }, [])
 
+  // Fecha dropdowns ao clicar fora
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      const target = e.target as HTMLElement
+      if (!target.closest('[data-dropdown]')) {
+        setMostrarListaPlaca(false)
+        setMostrarListaOrigem(false)
+        setMostrarListaDestino(false)
+        setMostrarListaMotorista(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
   async function handleTransferir(e: React.FormEvent) {
     e.preventDefault()
 
@@ -152,7 +167,7 @@ export default function TransferenciaPage() {
             className="w-full h-full object-cover object-center"
           />
           <div className="absolute inset-0 bg-gradient-to-r from-[#0a1625]/90 via-[#0a1625]/55 to-transparent" />
-          <div className="absolute inset-0 flex items-end pb-5 px-8">
+          <div data-banner className="absolute inset-0 flex items-end pb-5 px-8">
             <div>
               <h1 className="text-2xl font-bold text-white tracking-tight">
                 Transferência de Bases
@@ -176,7 +191,7 @@ export default function TransferenciaPage() {
 
               <form onSubmit={handleTransferir} className="p-6 space-y-5">
                 {/* Placa */}
-                <div className="relative">
+                <div data-dropdown className="relative">
                   <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
                     Veículo
                   </label>
@@ -231,7 +246,7 @@ export default function TransferenciaPage() {
                 {/* Bases com busca */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Origem */}
-                  <div className="relative">
+                  <div data-dropdown className="relative">
                     <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
                       Base origem
                     </label>
@@ -277,7 +292,7 @@ export default function TransferenciaPage() {
                   </div>
 
                   {/* Destino */}
-                  <div className="relative">
+                  <div data-dropdown className="relative">
                     <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
                       Base destino
                     </label>
@@ -325,7 +340,7 @@ export default function TransferenciaPage() {
 
                 {/* Motorista + Data */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="relative">
+                  <div data-dropdown className="relative">
                     <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
                       Motorista (opcional)
                     </label>
