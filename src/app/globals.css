@@ -110,7 +110,7 @@ html.light .text-red-300 {
   color: #b91c1c !important;
 }
 
-/* ── Títulos no banner (sempre branco sobre a foto) ────────────── */
+/* Títulos no banner  */
 /* O banner usa a classe drop-shadow que é exclusiva do overlay */
 html.light [data-banner] h1,
 html.light [data-banner] h2,
@@ -119,7 +119,7 @@ html.light [data-banner] p {
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
 }
 
-/* ── Labels dos campos (Veículo, KM Atual, Motorista, etc.) ────── */
+/*  Labels dos campos (Veículo, KM Atual, Motorista, etc.)  */
 
 html.light label {
   color: #1e293b !important;
