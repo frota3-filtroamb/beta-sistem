@@ -1,5 +1,6 @@
 'use client'
 
+import RequirePermissao from '@/components/RequirePermissao'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Sidebar from '@/components/Sidebar'
@@ -118,28 +119,31 @@ export default function EncomendasPage() {
   )
 
   return (
+    <RequirePermissao permissao="encomendas">
     <div className="min-h-screen flex bg-[#0a1625]">
       <Sidebar />
 
-      <div className="flex-1 ml-64">
+      <div className="flex-1 ml-64 flex flex-col h-screen overflow-hidden">
         {/* Banner */}
-        <div className="relative h-44 md:h-52 overflow-hidden">
+        <div className="relative h-28 md:h-36 shrink-0 overflow-hidden">
           <img src="/images/banner-frota.jpg" alt="Filtroamb" className="w-full h-full object-cover object-center" />
           <div className="absolute inset-0 bg-gradient-to-r from-[#0a1625]/90 via-[#0a1625]/60 to-[#0a1625]/20" />
-          <div data-banner className="absolute inset-0 flex items-end pb-6 px-8">
+          <div data-banner className="absolute inset-0 flex items-end pb-4 px-8">
             <div>
-              <h1 className="text-2xl font-bold text-white tracking-tight drop-shadow flex items-center gap-2">
+              <h1 className="text-xl font-bold text-white tracking-tight drop-shadow flex items-center gap-2">
                 <span>📦</span> Recebimento de Encomendas
               </h1>
-              <p className="text-sm text-blue-300 mt-1 drop-shadow">
+              <p className="text-sm text-blue-300 mt-0.5 drop-shadow">
                 Registre os pacotes recebidos na portaria e gerencie as retiradas
               </p>
             </div>
           </div>
         </div>
 
-        <main className="p-8">
-          <div className="max-w-6xl mx-auto space-y-8">
+        {/* Scrollable content */}
+        <div className="flex-1 overflow-y-auto bg-[#0a1625]" style={{ zoom: 0.95 }}>
+        <main className="animate-tab p-6">
+          <div className="max-w-6xl mx-auto space-y-6">
 
             {/* Formulário de Recebimento */}
             <div className="bg-[#0f1c2e] rounded-2xl border border-blue-500/20 shadow-[0_0_30px_rgba(59,130,246,0.05)] overflow-hidden">
@@ -337,7 +341,9 @@ export default function EncomendasPage() {
             </div>
           </div>
         </main>
+        </div>
       </div>
     </div>
+    </RequirePermissao>
   )
 }

@@ -24,19 +24,19 @@ export default function VeiculosClient({ veiculos }: { veiculos: Veiculo[] }) {
 return (
   <>
   {/* Banner */}
-<div className="relative h-52 md:h-60 overflow-hidden">
+<div className="relative h-28 md:h-36 shrink-0 overflow-hidden">
   <img
     src="/images/banner-frota.jpg"
     alt="Filtroamb"
     className="w-full h-full object-cover object-center"
   />
   <div className="absolute inset-0 bg-gradient-to-r from-[#0a1625]/85 via-[#0a1625]/50 to-[#0a1625]/20" />
-  <div data-banner className="absolute inset-0 flex items-end pb-6 px-8">
+  <div data-banner className="absolute inset-0 flex items-end pb-4 px-8">
     <div>
-      <h1 className="text-2xl font-bold text-white tracking-tight drop-shadow">
+      <h1 className="text-xl font-bold text-white tracking-tight drop-shadow">
         FiltroAmb - Frota Ativa
       </h1>
-      <p className="text-sm text-emerald-300 mt-1 drop-shadow">
+      <p className="text-sm text-emerald-300 mt-0.5 drop-shadow">
         Controle de Frota
       </p>
     </div>
@@ -66,7 +66,7 @@ return (
       </div>
     </header>
 
-    <main className="p-8 bg-[#0a1625] min-h-[calc(100vh-80px)]">
+    <main className="animate-tab p-6 bg-[#0a1625] min-h-[calc(100vh-80px)]" style={{ zoom: 0.95 }}>
       <div className="bg-[#0f1c2e] rounded-2xl border border-emerald-500/15 shadow-[0_0_30px_rgba(16,185,129,0.05)] overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">

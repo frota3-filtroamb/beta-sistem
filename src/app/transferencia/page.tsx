@@ -1,5 +1,6 @@
 'use client'
 
+import RequirePermissao from '@/components/RequirePermissao'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Sidebar from '@/components/Sidebar'
@@ -51,6 +52,7 @@ export default function TransferenciaPage() {
   })
 
   return (
+    <RequirePermissao permissao="transferencia">
     <div className="min-h-screen flex bg-[#0a1625]">
       <Sidebar />
 
@@ -167,5 +169,6 @@ export default function TransferenciaPage() {
         </main>
       </div>
     </div>
+    </RequirePermissao>
   )
 }

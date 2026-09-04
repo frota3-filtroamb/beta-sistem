@@ -1,5 +1,6 @@
 'use client'
 
+import RequirePermissao from '@/components/RequirePermissao'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Sidebar from '@/components/Sidebar'
@@ -133,6 +134,7 @@ export default function PortariaPage() {
   )
 
   return (
+    <RequirePermissao permissao="portaria">
     <div className="min-h-screen flex bg-[#0a1625]">
       <Sidebar />
 
@@ -475,5 +477,6 @@ export default function PortariaPage() {
         </div>
       </div>
     </div>
+    </RequirePermissao>
   )
 }

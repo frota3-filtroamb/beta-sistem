@@ -1,17 +1,32 @@
 'use client'
 
+import { useUser, UserButton } from '@clerk/nextjs'
+import { getRole, podeAcessar } from '@/lib/roles'
 import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import { useTheme } from '@/components/ThemeProvider'
-import { UserButton } from '@clerk/nextjs'
-
 
 export default function Sidebar() {
   const pathname = usePathname()
   const { theme, toggleTheme } = useTheme()
+  const { user } = useUser()
+  const role = getRole(user)
+
+  const podeVeiculos = podeAcessar(user, 'veiculos')
+  const podePortaria = podeAcessar(user, 'portaria')
+  const podeLiberacao = podeAcessar(user, 'liberacao')
+  const podeTransferencia = podeAcessar(user, 'transferencia')
+  const podeEncomendas = podeAcessar(user, 'encomendas')
+
+  const temSubmenuPortaria =
+    podePortaria || podeLiberacao || podeTransferencia || podeEncomendas
+
   const [portariaAberta, setPortariaAberta] = useState(
-  pathname === '/portaria' || pathname === '/liberacao' || pathname === '/transferencia' || pathname === '/encomendas'
-)
+    pathname === '/portaria' ||
+      pathname === '/liberacao' ||
+      pathname === '/transferencia' ||
+      pathname === '/encomendas'
+  )
 
   const ativo = (href: string) => pathname === href
 
@@ -20,13 +35,16 @@ export default function Sidebar() {
       {/* Logo */}
       <div className="px-6 py-6 border-b border-white/10">
         <div className="flex items-center gap-3">
-       <img
-       src={theme === 'dark' ? '/images/logo-filtroamb-dark.png' : '/images/logo-filtroamb.png'}
-        alt="Filtroamb"
-         className="h-13 w-auto object-contain"
-         />
+          <img
+            src={theme === 'dark' ? '/images/logo-filtroamb-dark.png' : '/images/logo-filtroamb.png'}
+            alt="Filtroamb"
+            className="h-13 w-auto object-contain"
+          />
         </div>
         <p className="text-[15px] text-slate-400 mt-2">Gestão de Frota</p>
+        <p className="text-[10px] text-slate-500 mt-1 uppercase tracking-wider">
+          {role === 'gestor' ? 'Gestor' : 'Porteiro'}
+        </p>
       </div>
 
       {/* Menu */}
@@ -35,87 +53,104 @@ export default function Sidebar() {
           Menu
         </p>
 
-        <a
-        href="/transferencia"
-        className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all ${
-        ativo('/transferencia')
-        ? 'bg-emerald-500/15 text-emerald-300 font-medium'
-        : 'text-slate-400 hover:bg-white/5 hover:text-white'
-        }`}
->
-  <span>Transferência</span>
-</a>
-
-        <a
-          href="/"
-          className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all ${
-            ativo('/')
-              ? 'bg-emerald-500/15 text-emerald-300 font-medium'
-              : 'text-slate-300 hover:bg-white/5 hover:text-white'
-          }`}
-        >
-          <span className="text-base">🚚</span>
-          <span>Veículos</span>
-        </a>
-
-        <div>
-          <button
-            type="button"
-            onClick={() => setPortariaAberta(!portariaAberta)}
-            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm transition-all ${
-              pathname === '/portaria' || pathname === '/liberacao' || pathname === '/encomendas'
-                ? 'bg-emerald-500/10 text-emerald-300 font-medium'
+        {podeVeiculos && (
+          <a
+            href="/"
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all ${
+              ativo('/')
+                ? 'bg-emerald-500/15 text-emerald-300 font-medium'
                 : 'text-slate-300 hover:bg-white/5 hover:text-white'
             }`}
           >
-            <span className="flex items-center gap-3">
-              <span className="text-base">🚪</span>
-              <span>Portaria</span>
-            </span>
-            <span className={`text-xs transition-transform ${portariaAberta ? 'rotate-90' : ''}`}>
-              ▶
-            </span>
-          </button>
+            <span className="text-base">🚚</span>
+            <span>Veículos</span>
+          </a>
+        )}
 
-          {portariaAberta && (
-            <div className="mt-1 ml-4 pl-3 border-l border-white/10 space-y-1">
-              <a
-                href="/portaria"
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all ${
-                  ativo('/portaria')
-                    ? 'bg-emerald-500/15 text-emerald-300 font-medium'
-                    : 'text-slate-400 hover:bg-white/5 hover:text-white'
-                }`}
-              >
-                <span>Controle</span>
-              </a>
-              <a
-                href="/liberacao"
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all ${
-                  ativo('/liberacao')
-                    ? 'bg-emerald-500/15 text-emerald-300 font-medium'
-                    : 'text-slate-400 hover:bg-white/5 hover:text-white'
-                }`}
-              >
-                <span>Liberação</span>
-              </a>
-              <a
-                href="/encomendas"
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all ${
-                  ativo('/encomendas')
-                    ? 'bg-blue-500/15 text-blue-300 font-medium'
-                    : 'text-slate-400 hover:bg-white/5 hover:text-white'
-                }`}
-              >
-                <span className="mr-1">📦</span>
-                <span>Encomendas</span>
-              </a>
-            </div>
-          )}
-        </div>
+        {temSubmenuPortaria && (
+          <div>
+            <button
+              type="button"
+              onClick={() => setPortariaAberta(!portariaAberta)}
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm transition-all ${
+                pathname === '/portaria' ||
+                pathname === '/liberacao' ||
+                pathname === '/encomendas' ||
+                pathname === '/transferencia'
+                  ? 'bg-emerald-500/10 text-emerald-300 font-medium'
+                  : 'text-slate-300 hover:bg-white/5 hover:text-white'
+              }`}
+            >
+              <span className="flex items-center gap-3">
+                <span className="text-base">🚪</span>
+                <span>Portaria</span>
+              </span>
+              <span className={`text-xs transition-transform ${portariaAberta ? 'rotate-90' : ''}`}>
+                ▶
+              </span>
+            </button>
+
+            {portariaAberta && (
+              <div className="mt-1 ml-4 pl-3 border-l border-white/10 space-y-1">
+                {podePortaria && (
+                  <a
+                    href="/portaria"
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all ${
+                      ativo('/portaria')
+                        ? 'bg-emerald-500/15 text-emerald-300 font-medium'
+                        : 'text-slate-400 hover:bg-white/5 hover:text-white'
+                    }`}
+                  >
+                    <span>Controle</span>
+                  </a>
+                )}
+
+                {podeLiberacao && (
+                  <a
+                    href="/liberacao"
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all ${
+                      ativo('/liberacao')
+                        ? 'bg-emerald-500/15 text-emerald-300 font-medium'
+                        : 'text-slate-400 hover:bg-white/5 hover:text-white'
+                    }`}
+                  >
+                    <span>Liberação</span>
+                  </a>
+                )}
+
+                {podeTransferencia && (
+                  <a
+                    href="/transferencia"
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all ${
+                      ativo('/transferencia')
+                        ? 'bg-emerald-500/15 text-emerald-300 font-medium'
+                        : 'text-slate-400 hover:bg-white/5 hover:text-white'
+                    }`}
+                  >
+                    <span>Transferência</span>
+                  </a>
+                )}
+
+                {podeEncomendas && (
+                  <a
+                    href="/encomendas"
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all ${
+                      ativo('/encomendas')
+                        ? 'bg-blue-500/15 text-blue-300 font-medium'
+                        : 'text-slate-400 hover:bg-white/5 hover:text-white'
+                    }`}
+                  >
+                    <span className="mr-1">📦</span>
+                    <span>Encomendas</span>
+                  </a>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </nav>
 
-      {/* Botão tema */}
+      {/* Tema */}
       <div className="px-3 pb-2">
         <button
           type="button"
@@ -131,11 +166,11 @@ export default function Sidebar() {
 
       {/* Rodapé */}
       <div className="px-4 py-3 border-t border-white/10 flex items-center justify-between">
-       <div>
-       <p className="text-[11px] text-slate-500">Sistema Interno</p>
-      <p className="text-[10px] text-slate-600 mt-0.5">v1.5</p>
-       </div>
-             <UserButton />
+        <div>
+          <p className="text-[11px] text-slate-500">Sistema Interno</p>
+          <p className="text-[10px] text-slate-600 mt-0.5">v1.5</p>
+        </div>
+        <UserButton />
       </div>
     </aside>
   )
