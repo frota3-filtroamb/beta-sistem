@@ -140,7 +140,7 @@ export default function EncomendasPage() {
           </div>
         </div>
 
-        {/* Scrollable content */}
+        {/* zoom da pagina */}
         <div className="flex-1 overflow-y-auto bg-[#0a1625]" style={{ zoom: 0.95 }}>
         <main className="animate-tab p-6">
           <div className="max-w-6xl mx-auto space-y-6">
